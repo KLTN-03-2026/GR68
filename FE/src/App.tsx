@@ -5,7 +5,7 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
-// import { ManagePage } from './pages/ManagePage';
+import { ManagePage } from './pages/ManagePage';
 // import { StorePage } from './pages/StorePage';
 import { SearchPage } from './pages/SearchPage';
 // import { ContactPage } from './pages/ContactPage';
@@ -139,11 +139,11 @@ export default function App() {
           */}
           
           {/* Protected Routes */}
-          {/* 
           <Route 
             path="/manage" 
             element={<LegacyPageWrapper Component={ManagePage} requireAuth allowedRoles={['landlord', 'admin']} />} 
           />
+          {/*
           <Route 
             path="/tenant" 
             element={<LegacyPageWrapper Component={TenantPage} requireAuth allowedRoles={['tenant', 'admin']} />} 
