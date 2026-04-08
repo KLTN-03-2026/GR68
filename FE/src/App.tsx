@@ -7,11 +7,11 @@ import { RegisterPage } from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 // import { ManagePage } from './pages/ManagePage';
 // import { StorePage } from './pages/StorePage';
-// import { SearchPage } from './pages/SearchPage';
+import { SearchPage } from './pages/SearchPage';
 // import { ContactPage } from './pages/ContactPage';
 // import { TenantPage } from './pages/TenantPage';
 // import { AdminPage } from './pages/AdminPage';
-// import { ListingDetailPage } from './pages/ListingDetailPage';
+import { ListingDetailPage } from './pages/ListingDetailPage';
 // import { PaymentResultPage } from './pages/PaymentResultPage';
 // import { StoreDetailPage } from './pages/StoreDetailPage';
 // import { CheckoutPage } from './pages/CheckoutPage';
@@ -126,6 +126,8 @@ export default function App() {
         {/* Routes with MainLayout (Has Header/Footer) */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<LegacyPageWrapper Component={HomePage} />} />
+          <Route path="/listing-detail" element={<LegacyPageWrapper Component={ListingDetailPage} />} />
+          <Route path="/search" element={<LegacyPageWrapper Component={SearchPage} />} />
           {/* 
           <Route path="/store" element={<LegacyPageWrapper Component={StorePage} />} />
           <Route path="/search" element={<LegacyPageWrapper Component={SearchPage} />} />
