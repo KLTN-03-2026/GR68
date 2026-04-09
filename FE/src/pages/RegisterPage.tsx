@@ -7,102 +7,117 @@ import {
   User, 
   Phone, 
   ArrowRight, 
-  Home as HomeIcon, 
-  UserCircle,
+  Home as IconChuTro, 
+  UserCircle as IconNguoiThue,
   Smartphone
 } from 'lucide-react';
 import { AuthIllustration } from '../components/auth/AuthIllustration';
 import { supabase } from '../lib/supabase';
 
-export const RegisterPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
-  const [role, setRole] = useState<'landlord' | 'tenant'>('landlord');
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [step, setStep] = useState<'form' | 'otp'>('form');
-  const [otp, setOtp] = useState('');
+// Component Trang Đăng Ký
+export const RegisterPage = ({ onNavigate }: { onNavigate: (trang: string) => void }) => {
+  // --- Khai báo Trạng thái ---
+  const [vaiTro, setVaiTro] = useState<'landlord' | 'tenant'>('landlord');
+  const [hoTen, setHoTen] = useState('');
+  const [soDienThoai, setSoDienThoai] = useState('');
+  const [matKhau, setMatKhau] = useState('');
+  const [xacNhanMatKhau, setXacNhanMatKhau] = useState('');
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const [dangTai, setDangTai] = useState(false);
+  const [loiNhan, setLoiNhan] = useState<string | null>(null);
+  const [thanhCong, setThanhCong] = useState(false);
+
+  const [buocHienTai, setBuocHienTai] = useState<'bieu_mau' | 'otp'>('bieu_mau');
+  const [maOTP, setMaOTP] = useState('');
+
+  // --- Hàm chuẩn hóa số điện thoại ---
+  const chuanHoaSDT = (sdt: string) => {
+    const sdtSach = sdt.trim();
+    if (sdtSach.startsWith('0')) return `+84${sdtSach.slice(1)}`;
+    if (sdtSach.startsWith('+')) return sdtSach;
+    return `+84${sdtSach}`;
+  };
+
+  // --- Hàm xử lý Đăng ký ---
+  const xuLyDangKy = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setDangTai(true);
+    setLoiNhan(null);
 
-    if (password !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp');
-      setLoading(false);
+    if (matKhau !== xacNhanMatKhau) {
+      setLoiNhan('Mật khẩu xác nhận không khớp');
+      setDangTai(false);
       return;
     }
 
     try {
-      const formattedPhone = phone.startsWith('0') ? `+84${phone.slice(1)}` : phone.startsWith('+') ? phone : `+84${phone}`;
+      const sdtDaChuanHoa = chuanHoaSDT(soDienThoai);
       
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        phone: formattedPhone,
-        password,
+      const { data: duLieuAuth, error: loiAuth } = await supabase.auth.signUp({
+        phone: sdtDaChuanHoa,
+        password: matKhau,
         options: {
           data: {
-            full_name: fullName,
-            phone: formattedPhone,
-            role: role,
+            full_name: hoTen,
+            phone: sdtDaChuanHoa,
+            role: vaiTro,
           }
         }
       });
 
-      if (signUpError) throw signUpError;
+      if (loiAuth) throw loiAuth;
 
-      setStep('otp');
+      setBuocHienTai('otp');
     } catch (err: any) {
-      setError(err.message || 'Đã có lỗi xảy ra khi đăng ký');
+      setLoiNhan('Số điện thoại đã được đăng ký hoặc sai định dạng');
     } finally {
-      setLoading(false);
+      setDangTai(false);
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  // --- Hàm xử lý Xác thực OTP ---
+  const xuLyXacThucOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setDangTai(true);
+    setLoiNhan(null);
 
     try {
-      const formattedPhone = phone.startsWith('0') ? `+84${phone.slice(1)}` : phone.startsWith('+') ? phone : `+84${phone}`;
+      const sdtDaChuanHoa = chuanHoaSDT(soDienThoai);
       
-      const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
-        phone: formattedPhone,
-        token: otp,
+      const { data: duLieuXacThuc, error: loiOTP } = await supabase.auth.verifyOtp({
+        phone: sdtDaChuanHoa,
+        token: maOTP,
         type: 'sms'
       });
 
-      if (verifyError) throw verifyError;
+      if (loiOTP) throw loiOTP;
 
-      // Create profile after OTP verification and successful login natively
-      if (verifyData.user) {
-        const { error: profileError } = await supabase
+      // Tạo hồ sơ người dùng trong database
+      if (duLieuXacThuc.user) {
+        const { error: loiProfile } = await supabase
           .from('profiles')
           .upsert({
-            id: verifyData.user.id,
-            full_name: fullName,
-            phone: formattedPhone,
-            role: role,
+            id: duLieuXacThuc.user.id,
+            full_name: hoTen,
+            phone: sdtDaChuanHoa,
+            role: vaiTro,
           }, { onConflict: 'id' });
 
-        if (profileError) {
-          console.error('Lỗi tạo profile:', profileError);
+        if (loiProfile) {
+          console.error('Lỗi tạo hồ sơ:', loiProfile);
         }
       }
 
-      setSuccess(true);
-      setTimeout(() => onNavigate('home'), 2000); // Usually OTP logs user in immediately, redirect to home
+      setThanhCong(true);
+      setTimeout(() => onNavigate('home'), 2000);
     } catch (err: any) {
-      setError(err.message || 'Mã xác thực không hợp lệ. Vui lòng thử lại.');
+      setLoiNhan('Mã xác thực không hợp lệ hoặc đã hết hạn.');
     } finally {
-      setLoading(false);
+      setDangTai(false);
     }
   };
 
+  // --- Giao diện ---
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       <div className="flex-1 flex flex-col p-8 md:p-16 lg:p-24 bg-white overflow-y-auto">
@@ -126,181 +141,179 @@ export const RegisterPage = ({ onNavigate }: { onNavigate: (page: string) => voi
             <p className="text-slate-500 text-base font-normal">Vui lòng điền thông tin để bắt đầu quản lý phòng trọ của bạn</p>
           </div>
 
-          {error && (
+          {loiNhan && (
             <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-medium">
-              {error}
+              {loiNhan}
             </div>
           )}
 
-          {success && (
+          {thanhCong && (
             <div className="mb-6 p-4 bg-green-50 border border-green-100 text-green-600 rounded-xl text-sm font-medium">
               Đăng ký và xác thực thành công! Đang chuyển hướng...
             </div>
           )}
 
-          {step === 'form' ? (
-            <form className="flex flex-col gap-5" onSubmit={handleRegister}>
-            <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-semibold">Họ và tên</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
-                <input 
-                  className="flex w-full rounded-lg border border-slate-300 bg-white h-12 pl-10 pr-4 text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
-                  placeholder="Nhập họ và tên của bạn" 
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
+          {buocHienTai === 'bieu_mau' ? (
+            <form className="flex flex-col gap-5" onSubmit={xuLyDangKy}>
+              <div className="flex flex-col gap-2">
+                <label className="text-slate-700 text-sm font-semibold">Họ và tên</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
+                  <input 
+                    className="flex w-full rounded-lg border border-slate-300 bg-white h-12 pl-10 pr-4 text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
+                    placeholder="Nhập họ và tên của bạn" 
+                    type="text"
+                    value={hoTen}
+                    onChange={(e) => setHoTen(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-semibold">Số điện thoại</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
-                <input 
-                  className="flex w-full rounded-lg border border-slate-300 bg-white h-12 pl-10 pr-4 text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
-                  placeholder="0901 234 567" 
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                />
+              <div className="flex flex-col gap-2">
+                <label className="text-slate-700 text-sm font-semibold">Số điện thoại</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
+                  <input 
+                    className="flex w-full rounded-lg border border-slate-300 bg-white h-12 pl-10 pr-4 text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
+                    placeholder="0901 234 567" 
+                    type="tel"
+                    value={soDienThoai}
+                    onChange={(e) => setSoDienThoai(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-semibold">Bạn là</label>
-              <div className="flex gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-slate-700 text-sm font-semibold">Bạn là</label>
+                <div className="flex gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => setVaiTro('landlord')}
+                    className={`flex-1 flex flex-col items-center justify-center p-3 border rounded-lg transition-all ${vaiTro === 'landlord' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-200 hover:bg-slate-50 text-slate-500'}`}
+                  >
+                    <IconChuTro className="mb-1 w-5 h-5" />
+                    <span className="text-sm font-medium">Chủ trọ</span>
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setVaiTro('tenant')}
+                    className={`flex-1 flex flex-col items-center justify-center p-3 border rounded-lg transition-all ${vaiTro === 'tenant' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-200 hover:bg-slate-50 text-slate-500'}`}
+                  >
+                    <IconNguoiThue className="mb-1 w-5 h-5" />
+                    <span className="text-sm font-medium">Người thuê</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-slate-700 text-sm font-semibold">Mật khẩu</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
+                  <input 
+                    className="flex w-full rounded-lg border border-slate-300 bg-white h-12 pl-10 pr-4 text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
+                    placeholder="••••••••" 
+                    type="password"
+                    value={matKhau}
+                    onChange={(e) => setMatKhau(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-slate-700 text-sm font-semibold">Xác nhận mật khẩu</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
+                  <input 
+                    className="flex w-full rounded-lg border border-slate-300 bg-white h-12 pl-10 pr-4 text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
+                    placeholder="••••••••" 
+                    type="password"
+                    value={xacNhanMatKhau}
+                    onChange={(e) => setXacNhanMatKhau(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
                 <button 
-                  type="button"
-                  onClick={() => setRole('landlord')}
-                  className={`flex-1 flex flex-col items-center justify-center p-3 border rounded-lg transition-all ${role === 'landlord' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-200 hover:bg-slate-50 text-slate-500'}`}
+                  disabled={dangTai || thanhCong}
+                  className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-orange-200 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  <HomeIcon className="mb-1 w-5 h-5" />
-                  <span className="text-sm font-medium">Chủ trọ</span>
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => setRole('tenant')}
-                  className={`flex-1 flex flex-col items-center justify-center p-3 border rounded-lg transition-all ${role === 'tenant' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-200 hover:bg-slate-50 text-slate-500'}`}
-                >
-                  <UserCircle className="mb-1 w-5 h-5" />
-                  <span className="text-sm font-medium">Người thuê</span>
+                  <span>{dangTai ? 'Đang xử lý...' : 'Đăng ký ngay'}</span>
+                  {!dangTai && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                 </button>
               </div>
-            </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-semibold">Mật khẩu</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
-                <input 
-                  className="flex w-full rounded-lg border border-slate-300 bg-white h-12 pl-10 pr-4 text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
-                  placeholder="••••••••" 
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+              <div className="mt-4 text-center">
+                <p className="text-slate-500 text-sm">
+                  Đã có tài khoản? 
+                  <button 
+                    type="button"
+                    onClick={() => onNavigate('login')}
+                    className="text-secondary font-bold hover:underline ml-1"
+                  >
+                    Đăng nhập
+                  </button>
+                </p>
               </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-semibold">Xác nhận mật khẩu</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
-                <input 
-                  className="flex w-full rounded-lg border border-slate-300 bg-white h-12 pl-10 pr-4 text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
-                  placeholder="••••••••" 
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <button 
-                disabled={loading || success}
-                className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-orange-200 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                <span>{loading ? 'Đang xử lý...' : 'Đăng ký ngay'}</span>
-                {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
-              </button>
-            </div>
-
-            <div className="mt-4 text-center">
-              <p className="text-slate-500 text-sm">
-                Đã có tài khoản? 
-                <button 
-                  type="button"
-                  onClick={() => onNavigate('login')}
-                  className="text-secondary font-bold hover:underline ml-1"
-                >
-                  Đăng nhập
-                </button>
-              </p>
-            </div>
-          </form>
+            </form>
           ) : (
-          <form className="flex flex-col gap-5" onSubmit={handleVerifyOtp}>
-            <div className="p-4 bg-orange-50 rounded-xl mb-4 border border-orange-100">
-              <p className="text-sm text-slate-700 text-center">
-                Mã xác nhận gồm 6 chữ số đã được gửi tới số điện thoại<br/>
-                <span className="font-bold text-primary">{phone}</span>
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-semibold text-center">Nhập mã xác nhận (OTP)</label>
-              <div className="relative mx-auto w-48">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
-                <input 
-                  className="flex w-full rounded-lg border border-slate-300 bg-white h-14 pl-10 pr-4 text-slate-900 text-center text-xl tracking-[0.2em] font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" 
-                  placeholder="000000" 
-                  type="text"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  required
-                />
+            <form className="flex flex-col gap-5" onSubmit={xuLyXacThucOTP}>
+              <div className="p-4 bg-orange-50 rounded-xl mb-4 border border-orange-100">
+                <p className="text-sm text-slate-700 text-center">
+                  Mã xác nhận gồm 6 chữ số đã được gửi tới số điện thoại<br/>
+                  <span className="font-bold text-primary">{soDienThoai}</span>
+                </p>
               </div>
-            </div>
-            
-            <div className="mt-6">
-              <button 
-                disabled={loading || otp.length < 6}
-                className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-orange-200 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                <span>{loading ? 'Đang xác thực...' : 'Hoàn tất Đăng ký'}</span>
-                {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
-              </button>
-            </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-slate-700 text-sm font-semibold text-center">Nhập mã xác nhận (OTP)</label>
+                <div className="relative mx-auto w-48">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
+                  <input 
+                    className="flex w-full rounded-lg border border-slate-300 bg-white h-14 pl-10 pr-4 text-slate-900 text-center text-xl tracking-[0.2em] font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" 
+                    placeholder="000000" 
+                    type="text"
+                    maxLength={6}
+                    value={maOTP}
+                    onChange={(e) => setMaOTP(e.target.value.replace(/\D/g, ''))}
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-6">
+                <button 
+                  disabled={dangTai || maOTP.length < 6}
+                  className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-orange-200 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  <span>{dangTai ? 'Đang xác thực...' : 'Hoàn tất Đăng ký'}</span>
+                  {!dangTai && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+                </button>
+              </div>
 
-            <div className="mt-4 text-center">
-              <button 
-                type="button"
-                onClick={() => {
-                  setStep('form');
-                  setOtp('');
-                  setError(null);
-                }}
-                className="text-slate-500 font-medium hover:text-slate-800 transition-colors text-sm"
-              >
-                Quay lại sửa thông tin
-              </button>
-            </div>
-          </form>
+              <div className="mt-4 text-center">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setBuocHienTai('bieu_mau');
+                    setMaOTP('');
+                    setLoiNhan(null);
+                  }}
+                  className="text-slate-500 font-medium hover:text-slate-800 transition-colors text-sm"
+                >
+                  Quay lại
+                </button>
+              </div>
+            </form>
           )}
+          
         </motion.div>
+        
 
-        <div className="mt-auto pt-8 flex gap-6 text-slate-400 text-xs">
-          <a className="hover:text-primary transition-colors" href="#">Điều khoản</a>
-          <a className="hover:text-primary transition-colors" href="#">Bảo mật</a>
-          <a className="hover:text-primary transition-colors" href="#">Liên hệ</a>
-        </div>
+     
       </div>
 
       <div className="hidden md:flex flex-1 relative flat-illustration border-l border-orange-100 overflow-hidden items-center justify-center p-12">

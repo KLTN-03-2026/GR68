@@ -160,9 +160,7 @@ export const LoginPage = ({ onNavigate }: { onNavigate: (page: string) => void }
           </div>
         </motion.div>
 
-        <div className="absolute bottom-8 text-slate-400 text-sm w-full text-center font-medium">
-          © 2024 Trọ Pro • Hệ thống Quản lý Phòng trọ Thông minh
-        </div>
+       
       </div>
 
       <AuthIllustration 
