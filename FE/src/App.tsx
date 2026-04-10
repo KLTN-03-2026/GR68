@@ -8,7 +8,7 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ManagePage } from './pages/ManagePage';
 // import { StorePage } from './pages/StorePage';
 import { SearchPage } from './pages/SearchPage';
-// import { ContactPage } from './pages/ContactPage';
+import { ContactPage } from './pages/ContactPage';
 // import { TenantPage } from './pages/TenantPage';
 // import { AdminPage } from './pages/AdminPage';
 import { ListingDetailPage } from './pages/ListingDetailPage';
@@ -128,6 +128,7 @@ export default function App() {
           <Route path="/" element={<LegacyPageWrapper Component={HomePage} />} />
           <Route path="/listing-detail" element={<LegacyPageWrapper Component={ListingDetailPage} />} />
           <Route path="/search" element={<LegacyPageWrapper Component={SearchPage} />} />
+          <Route path="/contact" element={<LegacyPageWrapper Component={ContactPage} />} />
           {/* 
           <Route path="/store" element={<LegacyPageWrapper Component={StorePage} />} />
           <Route path="/search" element={<LegacyPageWrapper Component={SearchPage} />} />
