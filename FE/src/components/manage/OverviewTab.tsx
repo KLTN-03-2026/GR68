@@ -43,7 +43,16 @@ export const OverviewTab = ({
     },
     { 
       label: 'Doanh thu tháng này', 
-      value: `${invoicesData.filter((inv: any) => inv.status === 'paid').reduce((acc: number, inv: any) => acc + Number(inv.amount), 0).toLocaleString()}đ`, 
+      value: `${invoicesData.filter((inv: any) => {
+        if (inv.status !== 'paid') return false;
+        const dateStr = inv.due_date || inv.created_at;
+        if (!dateStr) return false;
+        const dateParts = dateStr.split(/[-T ]/);
+        const invYear = parseInt(dateParts[0]);
+        const invMonth = parseInt(dateParts[1]);
+        const now = new Date();
+        return invYear === now.getFullYear() && invMonth === (now.getMonth() + 1);
+      }).reduce((acc: number, inv: any) => acc + Number(inv.amount), 0).toLocaleString()}đ`, 
       change: '+0%', 
       trend: 'up', 
       icon: Wallet,
@@ -105,22 +114,23 @@ export const OverviewTab = ({
         {/* Revenue Chart Mockup */}
         <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-10">
-            <h3 className="text-xl font-bold text-slate-900 font-display">Doanh thu 6 tháng gần nhất ({selectedYear})</h3>
+            <h3 className="text-xl font-bold text-slate-900 font-display">Doanh thu năm {selectedYear}</h3>
             <select 
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="text-sm font-bold bg-slate-50 border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-primary/20"
+              className="text-sm font-bold bg-slate-50 border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
             >
-              <option value="2024">Năm 2024</option>
-              <option value="2023">Năm 2023</option>
-              <option value="2022">Năm 2022</option>
+              {[0, 1, 2].map(offset => {
+                const year = new Date().getFullYear() - offset;
+                return <option key={year} value={year.toString()}>Năm {year}</option>
+              })}
             </select>
           </div>
           
-          <div className="relative h-[300px] w-full flex items-end justify-between px-4">
+          <div className="relative h-[300px] w-full flex items-end justify-between px-2 gap-1 md:gap-2">
             {chartData.map((data: any, i: number) => (
-              <div key={i} className="flex flex-col items-center gap-4 w-12 md:w-16">
-                <div className="w-full bg-slate-50 rounded-t-2xl h-full relative overflow-hidden group">
+              <div key={i} className="flex flex-col items-center gap-2 flex-1 h-full">
+                <div className="w-full bg-slate-50 rounded-t-lg md:rounded-t-2xl h-full relative overflow-hidden group">
                   <motion.div 
                     initial={{ height: 0 }}
                     animate={{ height: `${data.height}%` }}

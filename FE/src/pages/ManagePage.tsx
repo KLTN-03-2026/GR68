@@ -12,20 +12,21 @@ import { EditRoomModal } from '../components/manage/modals/EditRoomModal';
 import { AddListingModal } from '../components/manage/modals/AddListingModal';
 import { RoomDetailModal } from '../components/manage/modals/RoomDetailModal';
 import { DeleteConfirmModal } from '../components/manage/modals/DeleteConfirmModal';
+import { CreateInvoiceModal } from '../components/manage/modals/CreateInvoiceModal';
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 import Messaging from '../components/shared/Messaging';
 import { supabase } from '../lib/supabase';
-import {
-  LayoutDashboard,
-  Home as HomeIcon,
-  FileText,
-  MessageSquare,
-  User,
-  Plus,
-  TrendingUp,
+import { 
+  LayoutDashboard, 
+  Home as HomeIcon, 
+  FileText, 
+  MessageSquare, 
+  User, 
+  Plus, 
+  TrendingUp, 
   TrendingDown,
   Bed,
   Wallet,
@@ -90,7 +91,27 @@ interface ManagePageProps {
 
 
 export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: ManagePageProps) => {
-  const [activeTab, setActiveTab] = useState(initialParams?.tab || 'overview');
+  // Get tab from URL or LocalStorage or fallback to initialParams or 'overview'
+  const getInitialTab = () => {
+    const params = new URLSearchParams(window.location.search);
+    const urlTab = params.get('tab');
+    if (urlTab) return urlTab;
+
+    const savedTab = localStorage.getItem('last_manage_tab');
+    return savedTab || initialParams?.tab || 'overview';
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+  
+  // Update URL and LocalStorage when tab changes
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', activeTab);
+    window.history.replaceState({}, '', url.toString());
+    
+    localStorage.setItem('last_manage_tab', activeTab);
+  }, [activeTab]);
+
   const [roomFilter, setRoomFilter] = useState('all');
   const [contractFilter, setContractFilter] = useState(initialParams?.filter || 'all');
   const [activeChat, setActiveChat] = useState(1);
@@ -121,6 +142,8 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
     electricity_price: 3500,
     water_price: 20000,
     service_fee: 150000,
+    initial_electricity_number: 0,
+    initial_water_number: 0,
     tenant_deposit: '',
     tenant_start_date: new Date().toISOString().split('T')[0],
     tenant_end_date: (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().split('T')[0]; })()
@@ -149,12 +172,14 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
     image_url: '',
     electricity_price: 3500,
     water_price: 20000,
-    service_fee: 150000
+    service_fee: 150000,
+    initial_electricity_number: 0,
+    initial_water_number: 0
   });
 
   // Delete Room Confirm Modal states
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
-  const [roomToDelete, setRoomToDelete] = useState<{ id: string, title: string } | null>(null);
+  const [roomToDelete, setRoomToDelete] = useState<{id: string, title: string} | null>(null);
   const [isDeletingRoom, setIsDeletingRoom] = useState(false);
   const [deleteSuccessMessage, setDeleteSuccessMessage] = useState('');
 
@@ -172,52 +197,97 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
   const [selectedTenant, setSelectedTenant] = useState<any>(null);
   const [showTenantProfile, setShowTenantProfile] = useState(false);
 
+  // Invoices
+  const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
+  const [addingInvoice, setAddingInvoice] = useState(false);
+  const [preSelectedRoomForInvoice, setPreSelectedRoomForInvoice] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+  const [loadingContracts, setLoadingContracts] = useState(false);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [loadingListings, setLoadingListings] = useState(false);
+  const [loadingSupport, setLoadingSupport] = useState(false);
+
   useEffect(() => {
     if (user) {
-      fetchDashboardData();
+      setLoading(true); // Initial load still shows a quick pulse if needed, but we'll try to keep it light
+      
+      // Fetch everything independently
+      Promise.all([
+        fetchRooms(),
+        fetchContracts(),
+        fetchInvoices(),
+        fetchListings(),
+        fetchSupportRequests()
+      ]).finally(() => setLoading(false));
     }
   }, [user]);
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
+  const fetchRooms = async () => {
+    setLoadingRooms(true);
     try {
-      const [
-        { data: rooms },
-        { data: contracts },
-        { data: invoices },
-        { data: listings }
-      ] = await Promise.all([
-        supabase.from('rooms').select('*').eq('owner_id', user?.id),
-        supabase.from('contracts').select('*, profiles!contracts_tenant_id_fkey(full_name, avatar_url, phone, gender, birth_date, permanent_address, id_card_number, id_card_date, id_card_place, zalo_phone, bank_name, bank_account_number, bank_account_name, emergency_contact_name, emergency_contact_phone), rooms(title)').eq('owner_id', user?.id),
-        supabase.from('invoices').select('*, profiles!invoices_tenant_id_fkey(full_name, avatar_url, phone), rooms(title)').eq('owner_id', user?.id),
-        supabase.from('listings').select('*').eq('owner_id', user?.id)
-      ]);
+      const { data } = await supabase.from('rooms').select('*, contracts(tenant_id, status)').eq('owner_id', user?.id);
+      setRoomsData(data || []);
+    } catch (err) {
+      console.error('Error fetching rooms:', err);
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
 
-      setRoomsData(rooms || []);
-      setContractsData(contracts || []);
-      setInvoicesData(invoices || []);
-      setListingsData(listings || []);
+  const fetchContracts = async () => {
+    setLoadingContracts(true);
+    try {
+      const { data } = await supabase.from('contracts').select('*, profiles!contracts_tenant_id_fkey(full_name, avatar_url, phone, gender, birth_date, permanent_address, id_card_number, id_card_date, id_card_place, zalo_phone, bank_name, bank_account_number, bank_account_name, emergency_contact_name, emergency_contact_phone), rooms(title)').eq('owner_id', user?.id);
+      setContractsData(data || []);
+    } catch (err) {
+      console.error('Error fetching contracts:', err);
+    } finally {
+      setLoadingContracts(false);
+    }
+  };
 
-      // Fetch support requests separately so it doesn't break the whole dashboard if the join fails
+  const fetchInvoices = async () => {
+    setLoadingInvoices(true);
+    try {
+      const { data } = await supabase.from('invoices').select('*, profiles!invoices_tenant_id_fkey(full_name, avatar_url, phone), rooms(title)').eq('owner_id', user?.id);
+      setInvoicesData(data || []);
+    } catch (err) {
+      console.error('Error fetching invoices:', err);
+    } finally {
+      setLoadingInvoices(false);
+    }
+  };
+
+  const fetchListings = async () => {
+    setLoadingListings(true);
+    try {
+      const { data } = await supabase.from('listings').select('*').eq('owner_id', user?.id);
+      setListingsData(data || []);
+    } catch (err) {
+      console.error('Error fetching listings:', err);
+    } finally {
+      setLoadingListings(false);
+    }
+  };
+
+  const fetchSupportRequests = async () => {
+    setLoadingSupport(true);
+    try {
       const { data: supportRequests, error: supportError } = await supabase
         .from('support_requests')
         .select('*, rooms(title)')
         .eq('landlord_id', user?.id)
         .order('created_at', { ascending: false });
-
-      if (supportError) {
-        console.error('Error fetching support requests:', supportError);
-      }
-
-      // If we got support requests, try to fetch profiles manually since joining profiles directly via auth.users FK requires special views
+        
       if (supportRequests && supportRequests.length > 0) {
         const tenantIds = [...new Set(supportRequests.map(req => req.tenant_id))];
         const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, full_name, avatar_url, phone')
           .in('id', tenantIds);
-
+          
         const mappedRequests = supportRequests.map(req => ({
           ...req,
           profiles: profilesData?.find(p => p.id === req.tenant_id) || null
@@ -226,11 +296,63 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
       } else {
         setSupportRequestsData([]);
       }
-
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+    } catch (err) {
+      console.error('Error fetching support:', err);
     } finally {
-      setLoading(false);
+      setLoadingSupport(false);
+    }
+  };
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchRooms(),
+      fetchContracts(),
+      fetchInvoices(),
+      fetchListings(),
+      fetchSupportRequests()
+    ]);
+    setLoading(false);
+  };
+
+  const handleAddInvoice = async (invoiceData: any) => {
+    setAddingInvoice(true);
+    try {
+      const { error } = await supabase.from('invoices').insert({
+        owner_id: user?.id,
+        ...invoiceData
+      });
+      if (error) throw error;
+      
+      if (invoiceData.tenant_id) {
+        await supabase.from('notifications').insert({
+          receiver_id: invoiceData.tenant_id,
+          sender_id: user?.id,
+          type: 'invoice',
+          title: 'Hóa đơn mới',
+          message: invoiceData.title,
+          action_url: '/tenant?tab=invoices'
+        });
+      }
+      
+      setShowCreateInvoiceModal(false);
+      await fetchInvoices(); // Only need to refresh invoices
+    } catch (err) {
+      console.error('Error creating invoice:', err);
+      alert('Không thể tạo hóa đơn');
+    } finally {
+      setAddingInvoice(false);
+    }
+  };
+
+  const handleUpdateInvoiceStatus = async (id: string, status: string) => {
+    try {
+      const { error } = await supabase.from('invoices').update({ status }).eq('id', id);
+      if (error) throw error;
+      await fetchInvoices(); // Only need to refresh invoices
+    } catch (err) {
+      console.error('Error updating invoice:', err);
+      alert('Không thể cập nhật hóa đơn');
     }
   };
 
@@ -238,7 +360,7 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
     setShowAddRoomModal(true);
     setAddRoomStep(1);
     setSelectedListingId(null);
-    setNewRoomForm({ title: '', price: '', type: 'Phòng trọ', area: '', status: 'empty', note: '', image_url: '', tenant_id: '', electricity_price: 3500, water_price: 20000, service_fee: 150000, tenant_deposit: '', tenant_start_date: new Date().toISOString().split('T')[0], tenant_end_date: (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().split('T')[0]; })() });
+    setNewRoomForm({ title: '', price: '', type: 'Phòng trọ', area: '', status: 'empty', note: '', image_url: '', tenant_id: '', electricity_price: 3500, water_price: 20000, service_fee: 150000, initial_electricity_number: 0, initial_water_number: 0, tenant_deposit: '', tenant_start_date: new Date().toISOString().split('T')[0], tenant_end_date: (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().split('T')[0]; })() });
     setSearchPhone('');
     setFoundTenant(null);
     setSearchError('');
@@ -258,6 +380,8 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
       electricity_price: listing.electricity_price || 3500,
       water_price: listing.water_price || 20000,
       service_fee: listing.service_fee || 150000,
+      initial_electricity_number: 0,
+      initial_water_number: 0,
       tenant_deposit: listing.deposit?.toString() || listing.price?.toString() || '',
       tenant_start_date: new Date().toISOString().split('T')[0],
       tenant_end_date: (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().split('T')[0]; })()
@@ -267,7 +391,7 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
 
   const skipToManualEntry = () => {
     setSelectedListingId(null);
-    setNewRoomForm({ title: '', price: '', type: 'Phòng trọ', area: '', status: 'empty', note: '', image_url: '', tenant_id: '', electricity_price: 3500, water_price: 20000, service_fee: 150000, tenant_deposit: '', tenant_start_date: new Date().toISOString().split('T')[0], tenant_end_date: (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().split('T')[0]; })() });
+    setNewRoomForm({ title: '', price: '', type: 'Phòng trọ', area: '', status: 'empty', note: '', image_url: '', tenant_id: '', electricity_price: 3500, water_price: 20000, service_fee: 150000, initial_electricity_number: 0, initial_water_number: 0, tenant_deposit: '', tenant_start_date: new Date().toISOString().split('T')[0], tenant_end_date: (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().split('T')[0]; })() });
     setAddRoomStep(2);
   };
 
@@ -276,7 +400,7 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
     setAddingRoom(true);
     try {
       const roomStatus = newRoomForm.tenant_id ? 'pending' : (newRoomForm.status || 'empty');
-
+      
       // 1. Create the room
       const { data: newRoom, error: roomError } = await supabase.from('rooms').insert({
         owner_id: user?.id,
@@ -289,7 +413,9 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
         image_url: newRoomForm.image_url || null,
         electricity_price: Number(newRoomForm.electricity_price) || 3500,
         water_price: Number(newRoomForm.water_price) || 20000,
-        service_fee: Number(newRoomForm.service_fee) || 150000
+        service_fee: Number(newRoomForm.service_fee) || 150000,
+        initial_electricity_number: Number(newRoomForm.initial_electricity_number) || 0,
+        initial_water_number: Number(newRoomForm.initial_water_number) || 0
       }).select().single();
       if (roomError) throw roomError;
 
@@ -391,7 +517,9 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
       image_url: r.image_url || '',
       electricity_price: r.electricity_price || 3500,
       water_price: r.water_price || 20000,
-      service_fee: r.service_fee || 150000
+      service_fee: r.service_fee || 150000,
+      initial_electricity_number: r.initial_electricity_number || 0,
+      initial_water_number: r.initial_water_number || 0
     });
     setShowEditRoomModal(true);
   };
@@ -410,11 +538,13 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
         image_url: editRoomForm.image_url || null,
         electricity_price: Number(editRoomForm.electricity_price) || 3500,
         water_price: Number(editRoomForm.water_price) || 20000,
-        service_fee: Number(editRoomForm.service_fee) || 150000
+        service_fee: Number(editRoomForm.service_fee) || 150000,
+        initial_electricity_number: Number(editRoomForm.initial_electricity_number) || 0,
+        initial_water_number: Number(editRoomForm.initial_water_number) || 0
       }).eq('id', editingRoomId);
-
+      
       if (error) throw error;
-
+      
       setShowEditRoomModal(false);
       await fetchDashboardData();
     } catch (err) {
@@ -478,24 +608,26 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
     if (!roomToDelete) return;
     setIsDeletingRoom(true);
     try {
-      // Phải xóa các bảng có khóa ngoại trỏ tới room_id trước
-      await supabase.from('listings').delete().eq('room_id', roomToDelete.id).eq('owner_id', user?.id);
-      await supabase.from('support_requests').delete().eq('room_id', roomToDelete.id);
-      await supabase.from('invoices').delete().eq('room_id', roomToDelete.id).eq('owner_id', user?.id);
-      await supabase.from('contracts').delete().eq('room_id', roomToDelete.id).eq('owner_id', user?.id);
+      const roomId = roomToDelete.id;
 
-      const { error } = await supabase.from('rooms').delete().eq('id', roomToDelete.id).eq('owner_id', user?.id);
+      // Sử dụng RPC function đã tạo để xóa dọn dẹp toàn bộ dữ liệu liên quan trong một transaction
+      const { error } = await supabase.rpc('delete_room_cascade', {
+        target_room_id: roomId,
+        target_owner_id: user?.id
+      });
+
       if (error) throw error;
-
+      
       await fetchDashboardData();
       setShowDeleteConfirmModal(false);
-
+      
       // Hiện Toast Message đẹp
       setDeleteSuccessMessage(`Đã xóa thành công phòng "${roomToDelete.title}".`);
       setTimeout(() => setDeleteSuccessMessage(''), 3000);
     } catch (err) {
       console.error('Error deleting room:', err);
-      alert('Đã có lỗi khi xoá phòng (Có thể dữ liệu phòng đang bị ràng buộc ở nơi khác).');
+      // Nếu vẫn lỗi, khả năng cao là do chính sách RLS hoặc dữ liệu đặc biệt chưa được dọn dẹp hết
+      alert('Không thể xóa phòng. Phòng có thể đang gắn với dữ liệu không thể dọn dẹp tự động. Vui lòng liên hệ hỗ trợ hoặc kiểm tra lại các hợp đồng đang hoạt động.');
     } finally {
       setIsDeletingRoom(false);
       setRoomToDelete(null);
@@ -546,43 +678,47 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
   };
 
   const calculateMonthlyRevenue = () => {
-    // Initialize an array of 6 months ending at current month or Dec of selected year
-    const currentYear = new Date().getFullYear();
-    const isCurrentYear = selectedYear === currentYear.toString();
-    const endMonth = isCurrentYear ? new Date().getMonth() : 11; // 0-indexed
-
-    const last6Months = [];
-    for (let i = 5; i >= 0; i--) {
-      let d = new Date(Number(selectedYear), endMonth - i, 1);
-      last6Months.push({
-        month: d.getMonth() + 1,
-        year: d.getFullYear(),
-        label: `T${d.getMonth() + 1}`,
+    // Generate all 12 months for the selected year
+    const yearNum = Number(selectedYear);
+    const months = [];
+    
+    for (let i = 0; i < 12; i++) {
+      months.push({
+        month: i + 1,
+        year: yearNum,
+        label: `T${i + 1}`,
         revenue: 0
       });
     }
 
-    // Filter paid invoices in the selected year
-    const paidInvoices = invoicesData.filter(inv => inv.status === 'paid' && new Date(inv.due_date).getFullYear().toString() === selectedYear);
+    // Filter paid invoices for the selected year
+    const paidInvoices = invoicesData.filter(inv => 
+      inv.status === 'paid' && 
+      new Date(inv.due_date).getFullYear().toString() === selectedYear
+    );
 
     // Aggregate revenue to matching months
     paidInvoices.forEach(inv => {
-      const invDate = new Date(inv.due_date);
-      const invMonth = invDate.getMonth() + 1;
-      const invYear = invDate.getFullYear();
-
-      const targetMonth = last6Months.find(m => m.month === invMonth && m.year === invYear);
+      // Use string split for date to avoid timezone shifts (format: YYYY-MM-DD or ISO)
+      const dateStr = inv.due_date || inv.created_at;
+      if (!dateStr) return;
+      
+      const dateParts = dateStr.split(/[-T ]/);
+      const invYear = parseInt(dateParts[0]);
+      const invMonth = parseInt(dateParts[1]); // 1-indexed
+      
+      const targetMonth = months.find(m => m.month === invMonth && m.year === invYear);
       if (targetMonth) {
         targetMonth.revenue += Number(inv.amount);
       }
     });
 
-    // Calculate chart height relative to max revenue (minimum 5M to have some height)
-    const maxRevenue = Math.max(...last6Months.map(m => m.revenue), 5000000);
-
-    return last6Months.map(m => ({
+    // Calculate chart height relative to max revenue
+    const maxRevenue = Math.max(...months.map(m => m.revenue), 1000000);
+    
+    return months.map(m => ({
       ...m,
-      height: m.revenue > 0 ? Math.max((m.revenue / maxRevenue) * 100, 10) : 5, // minimum 5% height to be visible
+      height: m.revenue > 0 ? Math.max((m.revenue / maxRevenue) * 100, 10) : 5,
       displayValue: (m.revenue / 1000000).toFixed(1) + 'M'
     }));
   };
@@ -593,7 +729,7 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
     id: string;
     label: string;
     icon: any;
-    badge?: number;
+    badge?: number | string;
   }
 
   const navItems: NavItem[] = [
@@ -601,15 +737,14 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
     { id: 'rooms', label: 'Danh sách phòng', icon: HomeIcon },
     { id: 'tenants', label: 'Người thuê', icon: Users },
     { id: 'contracts', label: 'Hợp đồng', icon: FileText },
+    { id: 'invoices', label: 'Hóa đơn', icon: Wallet },
+    { id: 'support', label: 'Yêu cầu hỗ trợ', icon: Wrench },
+    { id: 'listings', label: 'Bài đăng', icon: ImageIcon },
+    { id: 'messages', label: 'Tin nhắn', icon: MessageSquare },
+    { id: 'account', label: 'Tài khoản', icon: User },
   ];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -623,16 +758,17 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
               </div>
               <h2 className="text-lg font-bold text-slate-900 font-display">Chủ Trọ</h2>
             </div>
-
+            
             <nav className="space-y-1">
               {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === item.id
-                      ? 'bg-primary/10 text-primary'
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold text-sm ${
+                    activeTab === item.id 
+                      ? 'bg-primary/10 text-primary' 
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <item.icon className="w-5 h-5" />
@@ -653,15 +789,19 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
         {/* Main Content */}
         <main className={`flex-1 flex flex-col ${activeTab === 'messages' ? '' : 'p-4 md:p-8 lg:p-10 max-w-7xl mx-auto w-full'}`}>
           {activeTab === 'overview' && (
-            <OverviewTab
-              user={user}
-              roomsData={roomsData}
-              invoicesData={invoicesData}
-              listingsData={listingsData}
-              selectedYear={selectedYear}
-              setSelectedYear={setSelectedYear}
-              chartData={chartData}
-            />
+            loading ? (
+              <div className="h-64 flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
+            ) : (
+              <OverviewTab 
+                user={user} 
+                roomsData={roomsData} 
+                invoicesData={invoicesData} 
+                listingsData={listingsData} 
+                selectedYear={selectedYear}
+                setSelectedYear={setSelectedYear}
+                chartData={chartData} 
+              />
+            )
           )}
 
           {activeTab === 'rooms' && (
@@ -676,6 +816,7 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
               handleDeleteRoom={handleDeleteRoom}
               setSelectedRoom={setSelectedRoom}
               setShowRoomDetailModal={setShowRoomDetailModal}
+              loading={loading}
             />
           )}
 
@@ -683,6 +824,28 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
             <TenantsTab
               contractsData={contractsData}
               setActiveTab={setActiveTab}
+              loading={loading}
+            />
+          )}
+
+          {activeTab === 'invoices' && (
+            <InvoicesTab 
+              invoicesData={invoicesData} 
+              roomsData={roomsData}
+              contractsData={contractsData}
+              onOpenCreateInvoice={(roomId: string | null = null) => {
+                setPreSelectedRoomForInvoice(roomId);
+                setShowCreateInvoiceModal(true);
+              }}
+              onCreateInvoice={handleAddInvoice}
+              onUpdateStatus={handleUpdateInvoiceStatus}
+            />
+          )}
+
+          {activeTab === 'listings' && (
+            <ListingsTab
+              listingsData={listingsData}
+              setShowAddListingModal={setShowAddListingModal}
             />
           )}
 
@@ -690,7 +853,30 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
             <ContractsTab contractsData={contractsData} />
           )}
 
-          {activeTab !== 'overview' && activeTab !== 'rooms' && activeTab !== 'contracts' && activeTab !== 'tenants' && (
+          {activeTab === 'support' && (
+            <SupportTab
+              supportRequestsData={supportRequestsData}
+              handleUpdateSupportRequest={handleUpdateSupportRequest}
+            />
+          )}
+
+          {activeTab === 'messages' && (
+            <MessagesTab user={user} />
+          )}
+
+
+
+
+          {activeTab === 'account' && (
+            <AccountTab
+              user={user}
+              roomsData={roomsData}
+              contractsData={contractsData}
+              supabase={supabase}
+            />
+          )}
+
+          {activeTab !== 'overview' && activeTab !== 'rooms' && activeTab !== 'contracts' && activeTab !== 'messages' && activeTab !== 'account' && activeTab !== 'tenants' && activeTab !== 'invoices' && activeTab !== 'listings' && activeTab !== 'support' && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-6">
                 <Construction className="w-10 h-10" />
@@ -702,7 +888,19 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
         </main>
       </div>
 
-      <AddRoomModal
+      <CreateInvoiceModal
+        show={showCreateInvoiceModal}
+        onClose={() => {
+          setShowCreateInvoiceModal(false);
+          setPreSelectedRoomForInvoice(null);
+        }}
+        roomsData={roomsData}
+        preSelectedRoomId={preSelectedRoomForInvoice}
+        onCreate={handleAddInvoice}
+        loading={addingInvoice}
+      />
+
+      <AddRoomModal 
         show={showAddRoomModal}
         onClose={() => setShowAddRoomModal(false)}
         step={addRoomStep}

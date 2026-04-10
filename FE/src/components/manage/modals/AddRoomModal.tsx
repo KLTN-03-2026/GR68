@@ -30,6 +30,8 @@ interface NewRoomForm {
   tenant_deposit: string;
   tenant_start_date: string;
   tenant_end_date: string;
+  initial_electricity_number: number;
+  initial_water_number: number;
 }
 
 interface AddRoomModalProps {
@@ -370,6 +372,40 @@ export const AddRoomModal = ({
                             type="number"
                             value={form.service_fee}
                             onChange={e => setForm(f => ({ ...f, service_fee: Number(e.target.value) }))}
+                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 font-bold text-slate-700 focus:border-primary p-4 pl-11 outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-6 mt-8">
+                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <h4 className="font-black text-slate-900 font-display">Thông số ban đầu</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Số điệm ban đầu (kwh)</label>
+                        <div className="relative">
+                          <Zap className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />
+                          <input
+                            type="number"
+                            value={form.initial_electricity_number}
+                            onChange={e => setForm(f => ({ ...f, initial_electricity_number: Number(e.target.value) }))}
+                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 font-bold text-slate-700 focus:border-primary p-4 pl-11 outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Số nước ban đầu (khối)</label>
+                        <div className="relative">
+                          <Droplets className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                          <input
+                            type="number"
+                            value={form.initial_water_number}
+                            onChange={e => setForm(f => ({ ...f, initial_water_number: Number(e.target.value) }))}
                             className="w-full rounded-2xl border border-slate-200 bg-slate-50 font-bold text-slate-700 focus:border-primary p-4 pl-11 outline-none"
                           />
                         </div>

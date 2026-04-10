@@ -24,13 +24,15 @@ interface RoomsTabProps {
   handleDeleteRoom: (id: string, title: string) => void;
   setSelectedRoom: (r: any) => void;
   setShowRoomDetailModal: (v: boolean) => void;
+  loading?: boolean;
 }
 
 export const RoomsTab = ({
   roomsData, contractsData, listingsData,
   roomFilter, setRoomFilter,
   openAddRoomModal, openEditRoomModal, handleDeleteRoom,
-  setSelectedRoom, setShowRoomDetailModal
+  setSelectedRoom, setShowRoomDetailModal,
+  loading = false
 }: RoomsTabProps) => {
   const rooms = roomsData.map(r => {
     const activeContract = contractsData.find(c => c.room_id === r.id && c.status === 'active');
@@ -94,7 +96,23 @@ export const RoomsTab = ({
         ))}
       </div>
 
-      {rooms.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((idx) => (
+            <div key={idx} className="bg-white rounded-3xl border border-slate-200 overflow-hidden animate-pulse">
+              <div className="h-48 bg-slate-100" />
+              <div className="p-6 space-y-4">
+                <div className="h-6 bg-slate-100 rounded-md w-3/4" />
+                <div className="h-4 bg-slate-100 rounded-md w-1/2" />
+                <div className="space-y-2">
+                  <div className="h-10 bg-slate-50 rounded-xl" />
+                  <div className="h-4 bg-slate-100 rounded-md w-1/4" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : rooms.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50 mt-4">
           <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6 shadow-sm">
             <Home className="w-12 h-12 opacity-80" />

@@ -15,9 +15,10 @@ import Messaging from '../shared/Messaging';
 interface TenantsTabProps {
   contractsData: any[];
   setActiveTab: (tab: string) => void;
+  loading?: boolean;
 }
 
-export const TenantsTab = ({ contractsData, setActiveTab }: TenantsTabProps) => {
+export const TenantsTab = ({ contractsData, setActiveTab, loading = false }: TenantsTabProps) => {
   const [selectedTenant, setSelectedTenant] = useState<any>(null);
   const [showTenantProfile, setShowTenantProfile] = useState(false);
   const [sendingProfileReminder, setSendingProfileReminder] = useState(false);
@@ -61,7 +62,29 @@ export const TenantsTab = ({ contractsData, setActiveTab }: TenantsTabProps) => 
           <p className="text-slate-500 font-medium">Theo dõi thông tin và hồ sơ của người thuê hiện tại.</p>
         </div>
 
-        {tenants.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((idx) => (
+              <div key={idx} className="bg-white rounded-3xl border border-slate-200 p-6 animate-pulse">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-5 bg-slate-100 rounded w-3/4" />
+                    <div className="h-3 bg-slate-100 rounded w-1/4" />
+                  </div>
+                </div>
+                <div className="space-y-3 mb-6">
+                  <div className="h-4 bg-slate-100 rounded w-1/2" />
+                  <div className="h-4 bg-slate-100 rounded w-2/3" />
+                </div>
+                <div className="flex gap-2 pt-4 border-t border-slate-100">
+                  <div className="h-10 bg-slate-50 rounded-xl flex-1" />
+                  <div className="h-10 bg-slate-50 rounded-xl flex-1" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : tenants.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-3xl border border-slate-200">
             <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-300 mb-6">
               <Users className="w-10 h-10" />
