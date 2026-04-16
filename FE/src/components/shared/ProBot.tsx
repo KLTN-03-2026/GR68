@@ -7,19 +7,20 @@ import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import { Send, X, Home, User, Loader2, RefreshCw, Trash2, ChevronRight, ChevronLeft, Bell } from 'lucide-react';
-import { useProBot, Message } from '../../hooks/useProBot';
+import { useProBot, TinNhan } from '../../hooks/useProBot';
 import { useListingNotifications } from '../../hooks/useListingNotifications';
 import { Listing } from '../../lib/supabase';
 
 // ─────────────────────────────────────────────────────────────
-// SUB-COMPONENTS
+// CÁC THÀNH PHẦN PHỤ (Sub-components)
 // ─────────────────────────────────────────────────────────────
 
 export interface ProBotProps {
   onNavigate?: (page: string, params?: any) => void;
 }
 
-function RoomCard({ room, onNavigate }: { room: Listing, onNavigate?: (page: string, params?: any) => void }) {
+// COMPONENT: Thẻ hiển thị thông tin phòng (Carousel Item)
+function ThePhong({ room, onNavigate }: { room: Listing, onNavigate?: (page: string, params?: any) => void }) {
   return (
     <div 
       onClick={() => onNavigate?.('listing-detail', { id: room.id })}
@@ -65,7 +66,8 @@ function RoomCard({ room, onNavigate }: { room: Listing, onNavigate?: (page: str
   );
 }
 
-function TypingIndicator() {
+// COMPONENT: Hiệu ứng dấu 3 chấm đang gõ/đang tải
+function HieuUngDangGo() {
   return (
     <div className="flex gap-2.5 mr-auto">
       <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 mt-1">
@@ -80,7 +82,7 @@ function TypingIndicator() {
   );
 }
 
-function RetryBanner({ seconds }: { seconds: number }) {
+function BannerThuLai({ seconds }: { seconds: number }) {
   return (
     <div className="mx-4 mb-3 px-4 py-2.5 bg-orange-50 border border-orange-100 rounded-xl flex items-center gap-2">
       <Loader2 className="w-4 h-4 text-orange-400 animate-spin flex-shrink-0" />
@@ -90,7 +92,8 @@ function RetryBanner({ seconds }: { seconds: number }) {
     </div>
   );
 }
-function ChatMessage({ msg, onNavigate }: { msg: Message, onNavigate?: (page: string, params?: any) => void }) {
+// COMPONENT: Một bong bóng tin nhắn (Của User hoặc Bot)
+function TinNhanChat({ msg, onNavigate }: { msg: TinNhan, onNavigate?: (page: string, params?: any) => void }) {
   const isUser = msg.role === 'user';
   const [isExpanded, setIsExpanded] = useState(false);
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
@@ -162,7 +165,7 @@ function ChatMessage({ msg, onNavigate }: { msg: Message, onNavigate?: (page: st
 
               {/* Card Phòng ở giữa */}
               <div className="flex justify-center">
-                <RoomCard key={msg.rooms[currentRoomIndex].id} room={msg.rooms[currentRoomIndex]} onNavigate={onNavigate} />
+                <ThePhong key={msg.rooms[currentRoomIndex].id} room={msg.rooms[currentRoomIndex]} onNavigate={onNavigate} />
               </div>
 
               {/* Nút tới */}
@@ -195,22 +198,23 @@ function ChatMessage({ msg, onNavigate }: { msg: Message, onNavigate?: (page: st
 }
 
 // ─────────────────────────────────────────────────────────────
-// QUICK SUGGESTION CHIPS
+// CÁC GỢI Ý NHANH (Quick Suggestion Chips)
 // ─────────────────────────────────────────────────────────────
 
 const SUGGESTIONS = [
-  'Tìm phòng 3 triệu Hải Châu',
-  'Hải Châu nên ở đâu?',
-  'Tìm studio dưới 5 triệu',
-  'Gò Vấp có phòng nào phù hợp sinh viên?',
+  'Hải Châu nên ở đường nào?',
+  'Tìm phòng 3 triệu ở Hải Châu',
+  'Tìm phòng ở đường Bạch Đằng',
+  'Học Đại Học Duy Tân nên ở đường nào',
+  'Đường Lạc Long Quân có phòng nào phù hợp cho sinh viên?',
 ];
 
 // ─────────────────────────────────────────────────────────────
-// MAIN COMPONENT
+// COMPONENT CHÍNH (Main Component)
 // ─────────────────────────────────────────────────────────────
 
 export default function ProBot({ onNavigate }: ProBotProps) {
-  const { messages, isLoading, retryCountdown, handleSend, clearChat } = useProBot();
+  const { danhSachTinNhan, dangTai, demNguocThuLai, xuLyGui, xoaChat } = useProBot();
   const { notifications, unreadCount, markAllRead, dismissNotification } = useListingNotifications();
   const [input, setInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -225,7 +229,7 @@ export default function ProBot({ onNavigate }: ProBotProps) {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isLoading]);
+  }, [danhSachTinNhan, dangTai]);
 
   // Focus input when open
   useEffect(() => {
@@ -237,20 +241,21 @@ export default function ProBot({ onNavigate }: ProBotProps) {
 
   const submit = () => {
     const text = input.trim();
-    if (!text || isLoading) return;
+    if (!text || dangTai) return;
     setInput('');
-    handleSend(text);
+    xuLyGui(text);
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
   };
 
-  const showSuggestions = messages.length <= 1 && !isLoading;
+  const showSuggestions = danhSachTinNhan.length <= 1 && !dangTai;
 
+  // GIAO DIỆN CHÍNH
   return (
     <>
-      {/* ── Floating Button ── */}
+      {/* ── Nút nổi Floating Button (Nằm ở góc dưới bên phải) ── */}
       <button
         id="probot-toggle"
         onClick={() => setIsOpen(v => !v)}
@@ -345,7 +350,7 @@ export default function ProBot({ onNavigate }: ProBotProps) {
 
               <div className="flex items-center gap-1">
                 <button
-                  onClick={clearChat}
+                  onClick={xoaChat}
                   title="Xóa lịch sử"
                   className="p-2 text-gray-300 hover:text-gray-500 hover:bg-gray-50 rounded-xl transition-colors"
                 >
@@ -367,7 +372,7 @@ export default function ProBot({ onNavigate }: ProBotProps) {
             >
               {/* Tin nhắn thông báo phòng mới */}
               {notifications.map(notif => (
-                <ChatMessage 
+                <TinNhanChat 
                   key={notif.id} 
                   msg={{
                     id: notif.id,
@@ -381,16 +386,16 @@ export default function ProBot({ onNavigate }: ProBotProps) {
               ))}
 
               {/* Lịch sử chat thông thường */}
-              {messages.map(msg => (
-                <ChatMessage key={msg.id} msg={msg} onNavigate={onNavigate} />
+              {danhSachTinNhan.map(msg => (
+                <TinNhanChat key={msg.id} msg={msg} onNavigate={onNavigate} />
               ))}
 
               {/* Loading indicator */}
-              {isLoading && <TypingIndicator />}
+              {dangTai && <HieuUngDangGo />}
             </div>
 
             {/* Retry Banner */}
-            {retryCountdown > 0 && <RetryBanner seconds={retryCountdown} />}
+            {demNguocThuLai > 0 && <BannerThuLai seconds={demNguocThuLai} />}
 
             {/* Suggestion Chips */}
             {showSuggestions && (
@@ -400,7 +405,7 @@ export default function ProBot({ onNavigate }: ProBotProps) {
                   {SUGGESTIONS.map(s => (
                     <button
                       key={s}
-                      onClick={() => handleSend(s)}
+                      onClick={() => xuLyGui(s)}
                       className="text-[11px] text-orange-600 bg-orange-50 border border-orange-100 px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors font-medium flex items-center gap-1"
                     >
                       {s}
@@ -422,16 +427,16 @@ export default function ProBot({ onNavigate }: ProBotProps) {
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={onKeyDown}
                   placeholder="Tìm phòng hoặc hỏi tư vấn..."
-                  disabled={isLoading}
+                  disabled={dangTai}
                   className="flex-1 bg-transparent text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none disabled:opacity-50"
                 />
                 <button
                   id="probot-send"
                   onClick={submit}
-                  disabled={!input.trim() || isLoading}
+                  disabled={!input.trim() || dangTai}
                   className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-600 active:scale-90 transition-all flex-shrink-0"
                 >
-                  {isLoading
+                  {dangTai
                     ? <Loader2 className="w-4 h-4 animate-spin" />
                     : <Send className="w-4 h-4" />
                   }

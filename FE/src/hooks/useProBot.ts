@@ -5,14 +5,14 @@
 
 import { useState, useCallback } from 'react';
 import { supabase, Listing } from '../lib/supabase';
-import { detectIntent, extractSearchParams, SearchParams } from '../lib/ProBot';
-import { searchKnowledge, normalizeText } from '../lib/knowledgeSearch';
+import { nhanDienYDinh, trichXuatThamSo, ThamSoTimKiem, goiAI, HUONG_DAN_HE_THONG } from '../lib/ProBot';
+import { timKiemTriThuc, chuanHoaVanBan } from '../lib/knowledgeSearch';
 
 // ─────────────────────────────────────────────────────────────
-// TYPES
+// ĐỊNH NGHĨA KIỂU DỮ LIỆU (Types)
 // ─────────────────────────────────────────────────────────────
 
-export interface Message {
+export interface TinNhan {
   id: string;
   role: 'user' | 'bot';
   text: string;
@@ -22,10 +22,10 @@ export interface Message {
 }
 
 // ─────────────────────────────────────────────────────────────
-// CONSTANTS
+// HẰNG SỐ (Constants)
 // ─────────────────────────────────────────────────────────────
 
-const WELCOME: Message = {
+const CHAO_MUNG: TinNhan = {
   id: 'welcome',
   role: 'bot',
   text: 'Xin chào! Tôi là **ProBot** 🏠\n\nTôi có thể giúp bạn:\n- 🔍 **Tìm phòng** theo giá và khu vực\n- 💡 **Tư vấn** nên ở đường nào, khu nào phù hợp\n\nBạn đang cần gì?',
@@ -41,10 +41,10 @@ const QUICK_REPLIES: Array<{ pattern: RegExp; reply: string }> = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-// DATABASE SEARCH
+// TÌM KIẾM TRONG DATABASE (Supabase)
 // ─────────────────────────────────────────────────────────────
 
-async function searchRooms(params: SearchParams & { location?: string }): Promise<Listing[]> {
+async function timPhong(params: ThamSoTimKiem & { location?: string }): Promise<Listing[]> {
   if (!import.meta.env.VITE_SUPABASE_URL) return [];
 
   let query = supabase
@@ -76,7 +76,7 @@ async function searchRooms(params: SearchParams & { location?: string }): Promis
   return data || [];
 }
 
-async function savePreferences(params: SearchParams & { location?: string }) {
+async function luuSoThich(params: ThamSoTimKiem & { location?: string }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return; // Chỉ lưu với user đã đăng nhập
 
@@ -103,10 +103,10 @@ async function savePreferences(params: SearchParams & { location?: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// RESPONSE FORMATTERS
+// ĐỊNH DẠNG PHẢN HỒI (Response Formatters)
 // ─────────────────────────────────────────────────────────────
 
-function formatFindRoomResponse(params: SearchParams, rooms: Listing[], location?: string): string {
+function dinhDangPhanHoiTimPhong(params: ThamSoTimKiem, rooms: Listing[], location?: string): string {
   const parts: string[] = [];
 
   if (params.street)     parts.push(`ở đường **${params.street}**`);
@@ -130,18 +130,24 @@ function formatFindRoomResponse(params: SearchParams, rooms: Listing[], location
 }
 
 // ─────────────────────────────────────────────────────────────
-// MAIN HOOK
+// HOOK CHÍNH (Main Hook)
 // ─────────────────────────────────────────────────────────────
 
 export function useProBot() {
-  const [messages, setMessages] = useState<Message[]>([WELCOME]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [retryCountdown, setRetryCountdown] = useState(0);
+  // DANH SÁCH TIN NHẮN: Lưu trữ toàn bộ lịch sử chat trong phiên làm việc
+  const [danhSachTinNhan, setDanhSachTinNhan] = useState<TinNhan[]>([CHAO_MUNG]);
+  
+  // TRẠNG THÀNH ĐANG TẢI: Hiệu ứng dấu 3 chấm khi AI hoặc Database đang xử lý
+  const [dangTai, setDangTai] = useState(false);
+  
+  // ĐẾM NGƯỢC THỬ LẠI: Dùng khi AI bị quá tải (Rate limit), hiển thị banner đếm ngược
+  const [demNguocThuLai, setDemNguocThuLai] = useState(0);
+  
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 
-  const addBotMessage = useCallback((text: string, rooms?: Listing[], isError = false) => {
-    setMessages(prev => [...prev, {
+  const themTinNhanBot = useCallback((text: string, rooms?: Listing[], isError = false) => {
+    setDanhSachTinNhan(prev => [...prev, {
       id: Date.now().toString(),
       role: 'bot',
       text,
@@ -151,55 +157,58 @@ export function useProBot() {
     }]);
   }, []);
 
-  const handleSend = useCallback(async (inputText: string) => {
-    if (!inputText.trim() || isLoading) return;
-
-    // Add user message
-    const userMsg: Message = {
+  const xuLyGui = useCallback(async (inputText: string) => {
+    if (!inputText.trim() || dangTai) return;
+    
+    // Thêm tin nhắn của người dùng vào lịch sử
+    const userMsg: TinNhan = {
       id: Date.now().toString(),
       role: 'user',
       text: inputText.trim(),
       timestamp: new Date(),
     };
-    setMessages(prev => [...prev, userMsg]);
-    setIsLoading(true);
+    setDanhSachTinNhan(prev => [...prev, userMsg]);
+    setDangTai(true);
 
     try {
-      // ── TIER 1: Local quick replies (0 API call) ──────────────────
+      // ── TIER 1: Phản hồi nhanh ──────────────────
+      // Kiểm tra xem câu hỏi có nằm trong danh sách trả lời nhanh (xin chào, cảm ơn...) không.
       for (const { pattern, reply } of QUICK_REPLIES) {
         if (pattern.test(inputText.trim())) {
-          addBotMessage(reply);
+          themTinNhanBot(reply);
+          setDangTai(false);
           return;
         }
       }
 
-      const intent = detectIntent(inputText);
+      // Phân tích ý định người dùng (Tìm phòng / Tư vấn / Chat)
+      const intent = nhanDienYDinh(inputText);
 
-      // ── TIER 2A: Tìm phòng → Supabase (0 API call) ───────────────
+      // ── TIER 2A: Tìm phòng ───────────────
       if (intent === 'FIND_ROOM') {
-        const params = extractSearchParams(inputText);
-        const knowledgeMatch = searchKnowledge(inputText);
+        const params = trichXuatThamSo(inputText);
+        const knowledgeMatch = timKiemTriThuc(inputText);
         const location = knowledgeMatch?.district;
 
-        const rooms = await searchRooms({ ...params, location });
-        const text = formatFindRoomResponse(params, rooms, location);
-        addBotMessage(text, rooms);
+        const rooms = await timPhong({ ...params, location });
+        const text = dinhDangPhanHoiTimPhong(params, rooms, location);
+        themTinNhanBot(text, rooms);
 
         // Tự động lưu preferences nếu có thông tin tìm kiếm
         if (params.minPrice || params.maxPrice || location || params.roomType) {
-          void savePreferences({ ...params, location });
+          void luuSoThich({ ...params, location });
         }
 
         return;
       }
 
 
-      // ── TIER 2B: Tư vấn khu vực → Knowledge Base (0 API call) ───
+      // ── TIER 2B: Tư vấn khu vực từ Knowledge Base có sẵn (0 API call AI) ───
       if (intent === 'ADVICE') {
-        const exactMatch = searchKnowledge(inputText);
+        const exactMatch = timKiemTriThuc(inputText);
 
         if (exactMatch) {
-          // Có dữ liệu → trả lời thẳng từ knowledge base, KHÔNG gọi Gemini
+          // Nếu khớp với tri thức trong file local -> Trả lời ngay lập tức theo template có sẵn
           const streets = exactMatch.streets
             .map(s => [
               `**${s.name}** — ${s.price_range.min}–${s.price_range.max} triệu/tháng`,
@@ -215,12 +224,12 @@ export function useProBot() {
           // Phân tích xem user có nhắc đến trường ĐH nào không để tạo lời chào cá nhân hóa
           let matchedUni = '';
           if (exactMatch.universities) {
-            const normalizedInput = normalizeText(inputText);
+            const normalizedInput = chuanHoaVanBan(inputText);
             // Lấy ra tên chính thức để chào (có chữ Đại học/FPT)
             const mainUnis = exactMatch.universities.filter(u => u.includes('Đại học') || u.includes('Cao đẳng') || u.includes('FPT'));
             
             for (const uni of mainUnis) {
-              if (normalizedInput.includes(normalizeText(uni))) {
+              if (normalizedInput.includes(chuanHoaVanBan(uni))) {
                 matchedUni = uni;
                 break;
               }
@@ -228,9 +237,9 @@ export function useProBot() {
             // Fallback nếu user dùng từ khóa lóng (VD: "bách khoa")
             if (!matchedUni) {
               for (const uni of exactMatch.universities) {
-                if (!uni.includes('Đại học') && normalizedInput.includes(normalizeText(uni))) {
+                if (!uni.includes('Đại học') && normalizedInput.includes(chuanHoaVanBan(uni))) {
                   // Lấy tên chính thức tương ứng (ngay trước nó trong mảng)
-                  matchedUni = mainUnis.find(m => normalizeText(m).includes(normalizeText(uni))) || uni;
+                  matchedUni = mainUnis.find(m => chuanHoaVanBan(m).includes(chuanHoaVanBan(uni))) || uni;
                   break;
                 }
               }
@@ -244,7 +253,7 @@ export function useProBot() {
             introText += `${exactMatch.overview}\n\n`;
           }
 
-          addBotMessage(
+          themTinNhanBot(
             introText +
             `💰 **Giá thuê:** ${exactMatch.avg_price.min}–${exactMatch.avg_price.max} triệu/tháng\n` +
             `👥 **Phù hợp với:** ${exactMatch.target_audience.join(', ')}\n\n` +
@@ -259,35 +268,45 @@ export function useProBot() {
       }
 
 
-      // ── TIER 3: Câu hỏi ngoài phạm vi → Từ chối khéo ────────────
-      addBotMessage(
-        `Mình chỉ hỗ trợ **tìm phòng trọ** và **tư vấn khu vực** thôi bạn ơi 😊\n\n` +
-        `Bạn có thể hỏi mình:\n` +
-        `- 🔍 **Tìm phòng:** "tìm phòng 3 triệu quận Hải Châu"\n` +
-        `- 💡 **Tư vấn khu vực:** "Hải Châu nên ở đường nào?"\n` +
-        `- 💰 **Theo giá:** "phòng dưới 2 triệu ở Liên Chiểu"\n` +
-        `- 🏠 **Theo loại:** "tìm studio quận Thanh Khê"\n\n` +
-        `Bạn muốn tìm phòng ở khu vực nào?`
+      // ── TIER 3: Gemini Advisor (API call) ─────────────────────────
+      // Nếu không match Tier 1, 2A, 2B -> Hỏi Gemini tư vấn chung
+      
+      // Format history cho Gemini
+      const lichSu = danhSachTinNhan
+        .slice(-6) // Lấy 6 tin nhắn gần nhất
+        .map(m => ({
+          role: m.role === 'bot' ? 'model' as const : 'user' as const,
+          text: m.text,
+        }));
+
+      const phanHoiAI = await goiAI(
+        inputText,
+        HUONG_DAN_HE_THONG,
+        apiKey,
+        lichSu,
+        (giay) => setDemNguocThuLai(giay)
       );
+
+      themTinNhanBot(phanHoiAI);
 
     } catch (error: any) {
       console.error('[useProBot]', error);
       const isLimit = String(error).includes('429') || String(error).includes('RESOURCE_EXHAUSTED');
-      addBotMessage(
+      themTinNhanBot(
         isLimit
           ? '⏳ AI đang bận, thử lại sau 1 phút nhé! Hoặc dùng: **"tìm phòng [giá] [khu vực]"**'
           : 'Xin lỗi, đã có lỗi. Vui lòng thử lại!',
         undefined, true
       );
     } finally {
-      setIsLoading(false);
-      setRetryCountdown(0);
+      setDangTai(false);
+      setDemNguocThuLai(0);
     }
-  }, [isLoading, apiKey, addBotMessage]);
+  }, [dangTai, apiKey, themTinNhanBot]);
 
-  const clearChat = useCallback(() => {
-    setMessages([WELCOME]);
+  const xoaChat = useCallback(() => {
+    setDanhSachTinNhan([CHAO_MUNG]);
   }, []);
 
-  return { messages, isLoading, retryCountdown, handleSend, clearChat };
+  return { danhSachTinNhan, dangTai, demNguocThuLai, xuLyGui, xoaChat };
 }

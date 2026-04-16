@@ -4,35 +4,37 @@
 // Cập nhật: 2026 — Đà Nẵng, TP. Hồ Chí Minh, Hà Nội
 // ============================================================
 
-export interface StreetInfo {
-  name: string;
-  reason: string;
-  amenities: string[];
-  price_range: { min: number; max: number }; // triệu VNĐ/tháng
-  types: string[];   // loại phòng phổ biến
-  target: string[];  // đối tượng phù hợp
-  pros: string[];
-  cons: string[];
+// Cấu trúc dữ liệu cho một con đường
+export interface ThongTinDuongPho {
+  name: string;        // Tên đường
+  reason: string;      // Lý do tại sao khu vực này đáng ở
+  amenities: string[]; // Các tiện nghị xung quanh (chợ, bệnh viện...)
+  price_range: { min: number; max: number }; // Khoảng giá (triệu VNĐ/tháng)
+  types: string[];     // Loại phòng phổ biến (studio, phòng trọ...)
+  target: string[];    // Đối tượng phù hợp (sinh viên, văn phòng...)
+  pros: string[];      // Ưu điểm
+  cons: string[];      // Nhược điểm
 }
 
-export interface DistrictKnowledge {
-  district: string;
-  city: string;
-  aliases: string[];   // các tên gọi khác, viết thường không dấu
-  overview: string;
-  avg_price: { min: number; max: number };
-  streets: StreetInfo[];
-  pros: string[];
-  cons: string[];
-  target_audience: string[];
-  universities?: string[]; // Thêm trường lưu tên các trường đại học
+// Cấu trúc dữ liệu cho tri thức về một quận/huyện
+export interface TriThucKhuVuc {
+  district: string;    // Tên quận/huyện
+  city: string;        // Tên thành phố
+  aliases: string[];   // Các tên gọi khác (không dấu, viết thường) để tìm kiếm
+  overview: string;    // Giới thiệu tổng quan
+  avg_price: { min: number; max: number }; // Giá thuê trung bình của quận
+  streets: ThongTinDuongPho[]; // Danh sách các con đường tiêu biểu
+  pros: string[];      // Ưu điểm chung của quận
+  cons: string[];      // Nhược điểm chung của quận
+  target_audience: string[]; // Đối tượng cư dân chính
+  universities?: string[];   // Các trường đại học lớn trong khu vực
 }
 
 // ============================================================
 // ĐÀ NẴNG
 // ============================================================
 
-const danang_haichau: DistrictKnowledge = {
+const danang_haichau: TriThucKhuVuc = {
   district: "Hải Châu",
   city: "Đà Nẵng",
   aliases: ["hai chau", "hải châu", "trung tam da nang", "q hải châu", "quận hải châu"],
@@ -124,7 +126,7 @@ const danang_haichau: DistrictKnowledge = {
   ],
 };
 
-const danang_thanhkhe: DistrictKnowledge = {
+const danang_thanhkhe: TriThucKhuVuc = {
   district: "Thanh Khê",
   city: "Đà Nẵng",
   aliases: ["thanh khe", "thanh khê", "q thanh khe", "quận thanh khê"],
@@ -198,7 +200,7 @@ const danang_thanhkhe: DistrictKnowledge = {
   ],
 };
 
-const danang_sontra: DistrictKnowledge = {
+const danang_sontra: TriThucKhuVuc = {
   district: "Sơn Trà",
   city: "Đà Nẵng",
   aliases: ["son tra", "sơn trà", "q son tra", "quận sơn trà", "da nang bien"],
@@ -254,7 +256,7 @@ const danang_sontra: DistrictKnowledge = {
   ],
 };
 
-const danang_nguhanson: DistrictKnowledge = {
+const danang_nguhanson: TriThucKhuVuc = {
   district: "Ngũ Hành Sơn",
   city: "Đà Nẵng",
   aliases: [
@@ -302,7 +304,7 @@ const danang_nguhanson: DistrictKnowledge = {
   ],
 };
 
-const danang_lienchieu: DistrictKnowledge = {
+const danang_lienchieu: TriThucKhuVuc = {
   district: "Liên Chiểu",
   city: "Đà Nẵng",
   aliases: ["lien chieu", "liên chiểu", "q lien chieu", "quận liên chiểu", "da nang bac", "nam o"],
@@ -363,7 +365,7 @@ const danang_lienchieu: DistrictKnowledge = {
 // TP. HỒ CHÍ MINH
 // ============================================================
 
-const hcm_quan1: DistrictKnowledge = {
+const hcm_quan1: TriThucKhuVuc = {
   district: "Quận 1",
   city: "TP. Hồ Chí Minh",
   aliases: ["quan 1", "quận 1", "q1", "trung tam sai gon", "sai gon", "saigon center"],
@@ -417,7 +419,7 @@ const hcm_quan1: DistrictKnowledge = {
   ],
 };
 
-const hcm_binhthanh: DistrictKnowledge = {
+const hcm_binhthanh: TriThucKhuVuc = {
   district: "Bình Thạnh",
   city: "TP. Hồ Chí Minh",
   aliases: [
@@ -475,7 +477,7 @@ const hcm_binhthanh: DistrictKnowledge = {
   ],
 };
 
-const hcm_govap: DistrictKnowledge = {
+const hcm_govap: TriThucKhuVuc = {
   district: "Gò Vấp",
   city: "TP. Hồ Chí Minh",
   aliases: ["go vap", "gò vấp", "q go vap", "quận gò vấp"],
@@ -526,7 +528,7 @@ const hcm_govap: DistrictKnowledge = {
   ],
 };
 
-const hcm_thuduc: DistrictKnowledge = {
+const hcm_thuduc: TriThucKhuVuc = {
   district: "TP. Thủ Đức",
   city: "TP. Hồ Chí Minh",
   aliases: [
@@ -590,7 +592,7 @@ const hcm_thuduc: DistrictKnowledge = {
 // HÀ NỘI
 // ============================================================
 
-const hanoi_caugiay: DistrictKnowledge = {
+const hanoi_caugiay: TriThucKhuVuc = {
   district: "Cầu Giấy",
   city: "Hà Nội",
   aliases: ["cau giay", "cầu giấy", "q cau giay", "quận cầu giấy", "ha noi tay"],
@@ -642,7 +644,7 @@ const hanoi_caugiay: DistrictKnowledge = {
   ],
 };
 
-const hanoi_dongda: DistrictKnowledge = {
+const hanoi_dongda: TriThucKhuVuc = {
   district: "Đống Đa",
   city: "Hà Nội",
   aliases: ["dong da", "đống đa", "q dong da", "quận đống đa", "ha noi trung tam"],
@@ -692,7 +694,7 @@ const hanoi_dongda: DistrictKnowledge = {
   ],
 };
 
-const hanoi_hoangmai: DistrictKnowledge = {
+const hanoi_hoangmai: TriThucKhuVuc = {
   district: "Hoàng Mai",
   city: "Hà Nội",
   aliases: ["hoang mai", "hoàng mai", "q hoang mai", "quận hoàng mai", "ha noi nam"],
@@ -747,7 +749,7 @@ const hanoi_hoangmai: DistrictKnowledge = {
 // EXPORTS — KNOWLEDGE BASE TỔNG HỢP
 // ============================================================
 
-export const KNOWLEDGE_BASE: DistrictKnowledge[] = [
+export const KHO_TRI_THUC: TriThucKhuVuc[] = [
   // Đà Nẵng
   danang_haichau,
   danang_thanhkhe,

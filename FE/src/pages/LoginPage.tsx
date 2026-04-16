@@ -14,40 +14,40 @@ import { AuthIllustration } from '../components/auth/AuthIllustration';
 import { supabase } from '../lib/supabase';
 
 export const LoginPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [phone, setPhone] = useState(() => localStorage.getItem('rememberedPhone') || '');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem('rememberedPhone'));
+  const [hienMatKhau, setHienMatKhau] = useState(false);
+  const [soDienThoai, setSoDienThoai] = useState(() => localStorage.getItem('rememberedPhone') || '');
+  const [matKhau, setMatKhau] = useState('');
+  const [dangTai, setDangTai] = useState(false);
+  const [loi, setLoi] = useState<string | null>(null);
+  const [ghiNhoToi, setGhiNhoToi] = useState(() => !!localStorage.getItem('rememberedPhone'));
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const xuLyDangNhap = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setDangTai(true);
+    setLoi(null);
 
     try {
-      const formattedPhone = phone.startsWith('0') ? `+84${phone.slice(1)}` : phone.startsWith('+') ? phone : `+84${phone}`;
+      const soDienThoaiDinhDang = soDienThoai.startsWith('0') ? `+84${soDienThoai.slice(1)}` : soDienThoai.startsWith('+') ? soDienThoai : `+84${soDienThoai}`;
 
-      const { error } = await supabase.auth.signInWithPassword({
-        phone: formattedPhone,
-        password,
+      const { error: loiHeThong } = await supabase.auth.signInWithPassword({
+        phone: soDienThoaiDinhDang,
+        password: matKhau,
       });
 
-      if (error) throw error;
+      if (loiHeThong) throw loiHeThong;
 
       // Xử lý ghi nhớ số điện thoại
-      if (rememberMe) {
-        localStorage.setItem('rememberedPhone', phone);
+      if (ghiNhoToi) {
+        localStorage.setItem('rememberedPhone', soDienThoai);
       } else {
         localStorage.removeItem('rememberedPhone');
       }
 
       onNavigate('home');
     } catch (err: any) {
-      setError(err.message || 'Đã có lỗi xảy ra khi đăng nhập');
+      setLoi(err.message || 'Đã có lỗi xảy ra khi đăng nhập');
     } finally {
-      setLoading(false);
+      setDangTai(false);
     }
   };
 
@@ -74,13 +74,13 @@ export const LoginPage = ({ onNavigate }: { onNavigate: (page: string) => void }
             <p className="text-slate-500 text-lg font-medium">Kết nối, chia sẻ, và tìm kiếm dễ dàng</p>
           </div>
 
-          {error && (
+          {loi && (
             <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-medium">
-              {error}
+              {loi}
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleLogin}>
+          <form className="space-y-6" onSubmit={xuLyDangNhap}>
             <div className="flex flex-col gap-2">
               <label className="text-slate-700 text-sm font-bold ml-1">Số điện thoại</label>
               <div className="relative">
@@ -89,8 +89,8 @@ export const LoginPage = ({ onNavigate }: { onNavigate: (page: string) => void }
                   className="flex w-full rounded-xl border-2 border-slate-100 bg-slate-50 h-14 pl-12 pr-4 text-slate-900 focus:border-primary focus:ring-0 placeholder:text-slate-400 transition-all outline-none" 
                   placeholder="0901 234 567" 
                   type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  value={soDienThoai}
+                  onChange={(e) => setSoDienThoai(e.target.value)}
                   required
                 />
               </div>
@@ -112,17 +112,17 @@ export const LoginPage = ({ onNavigate }: { onNavigate: (page: string) => void }
                 <input 
                   className="flex w-full rounded-xl border-2 border-slate-100 bg-slate-50 h-14 pl-12 pr-12 text-slate-900 focus:border-primary focus:ring-0 placeholder:text-slate-400 transition-all outline-none" 
                   placeholder="••••••••" 
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  type={hienMatKhau ? "text" : "password"}
+                  value={matKhau}
+                  onChange={(e) => setMatKhau(e.target.value)}
                   required
                 />
                 <button 
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setHienMatKhau(!hienMatKhau)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {hienMatKhau ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
@@ -132,18 +132,18 @@ export const LoginPage = ({ onNavigate }: { onNavigate: (page: string) => void }
                 className="w-5 h-5 rounded-md border-2 border-slate-200 text-primary focus:ring-primary focus:ring-offset-2 cursor-pointer" 
                 id="remember" 
                 type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
+                checked={ghiNhoToi}
+                onChange={(e) => setGhiNhoToi(e.target.checked)}
               />
               <label className="text-sm font-medium text-slate-600 cursor-pointer select-none" htmlFor="remember">Ghi nhớ số điện thoại</label>
             </div>
 
             <button 
-              disabled={loading}
+              disabled={dangTai}
               className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-orange-200 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <span>{loading ? 'Đang đăng nhập...' : 'Đăng nhập ngay'}</span>
-              {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+              <span>{dangTai ? 'Đang đăng nhập...' : 'Đăng nhập ngay'}</span>
+              {!dangTai && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
             </button>
           </form>
 

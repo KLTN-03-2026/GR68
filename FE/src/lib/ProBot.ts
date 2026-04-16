@@ -1,15 +1,15 @@
 // ============================================================
-// ProBot.ts — Core Logic: System Instruction, Intent Detection,
-//              Search Params Extraction, Gemini API wrapper
+// ProBot.ts — Logic Cốt Lõi: Chỉ dẫn hệ thống, Nhận diện ý định,
+//              Trích xuất tham số tìm kiếm, Kết nối Gemini API
 // ============================================================
 
 import { GoogleGenAI } from "@google/genai";
 
 // ─────────────────────────────────────────────────────────────
-// SYSTEM INSTRUCTIONS
+// CHỈ DẪN HỆ THỐNG (System Instructions)
 // ─────────────────────────────────────────────────────────────
 
-export const ADVISOR_SYSTEM_INSTRUCTION = `
+export const HUONG_DAN_HE_THONG = `
 Bạn là ProBot - trợ lý tư vấn phòng trọ của nền tảng Trọ Pro.
 Phong cách: Ngắn gọn, thân thiện, thực tế. Luôn trả lời bằng tiếng Việt.
 
@@ -26,10 +26,10 @@ Quy tắc bắt buộc:
 `;
 
 // ─────────────────────────────────────────────────────────────
-// TYPES
+// ĐỊNH NGHĨA KIỂU DỮ LIỆU (Types)
 // ─────────────────────────────────────────────────────────────
 
-export interface SearchParams {
+export interface ThamSoTimKiem {
   location?: string;
   street?: string;
   minPrice?: number; // VNĐ
@@ -38,79 +38,85 @@ export interface SearchParams {
   roomType?: string;
 }
 
-export type Intent = 'FIND_ROOM' | 'ADVICE' | 'CHAT';
+export type YDinh = 'FIND_ROOM' | 'ADVICE' | 'CHAT';
 
 // ─────────────────────────────────────────────────────────────
-// INTENT DETECTION (client-side, 0 API call)
+// NHẬN DIỆN Ý ĐỊNH (Client-side, không gọi API)
 // ─────────────────────────────────────────────────────────────
 
-const FIND_KEYWORDS = [
+const TU_KHOA_TIM_PHONG = [
   'tìm', 'thuê', 'kiếm', 'cho thuê', 'có phòng', 'phòng trống',
   'muốn thuê', 'cần thuê', 'tìm phòng', 'tìm trọ', 'phòng nào',
 ];
 
-const ADVICE_KEYWORDS = [
+const TU_KHOA_TU_VAN = [
   'nên ở', 'nên thuê', 'đường nào', 'khu nào', 'ở đâu', 'khu vực nào',
   'tiện ích', 'gần trường', 'gần chợ', 'ưu điểm', 'nhược điểm',
   'so sánh', 'tốt không', 'an ninh', 'an toàn', 'yên tĩnh',
 ];
 
-export function detectIntent(text: string): Intent {
+/**
+ * NHẬN DIỆN Ý ĐỊNH (Intent Detection)
+ * Hàm này dùng Regex để phân loại nhanh câu hỏi của người dùng ngay tại trình duyệt (Client-side), 
+ * giúp giảm tải cho API và tăng tốc độ phản hồi.
+ * 
+ * @param text Câu hỏi của người dùng
+ * @returns Loại ý định: 'FIND_ROOM' (Tìm phòng), 'ADVICE' (Tư vấn), hoặc 'CHAT' (Tán gẫu)
+ */
+export function nhanDienYDinh(text: string): YDinh {
   const lower = text.toLowerCase();
 
-  const hasFindKeyword = FIND_KEYWORDS.some(k => lower.includes(k));
-  const hasPrice = /\d+\s*(?:triệu|tr)/.test(lower);
+  // Kiểm tra từ khóa tìm phòng
+  const coTuKhoaTimPhong = TU_KHOA_TIM_PHONG.some(k => lower.includes(k));
+  // Kiểm tra nếu có nhắc đến giá tiền (VD: "2 triệu", "3tr")
+  const coGiaTien = /\d+\s*(?:triệu|tr)/.test(lower);
 
-  if (hasFindKeyword || hasPrice) return 'FIND_ROOM';
+  if (coTuKhoaTimPhong || coGiaTien) return 'FIND_ROOM';
 
-  const hasAdviceKeyword = ADVICE_KEYWORDS.some(k => lower.includes(k));
-  if (hasAdviceKeyword) return 'ADVICE';
+  // Kiểm tra từ khóa tư vấn khu vực
+  const coTuKhoaTuVan = TU_KHOA_TU_VAN.some(k => lower.includes(k));
+  if (coTuKhoaTuVan) return 'ADVICE';
 
   return 'CHAT';
 }
 
 // ─────────────────────────────────────────────────────────────
-// SEARCH PARAMS EXTRACTION (regex, 0 API call)
+// TRÍCH XUẤT THAM SỐ TÌM KIẾM (Dùng Regex, không gọi API)
 // ─────────────────────────────────────────────────────────────
 
-export function extractSearchParams(text: string): SearchParams {
-  const params: SearchParams = {};
+/**
+ * TRÍCH XUẤT THAM SỐ TÌM KIẾM
+ * Sử dụng Regex để "bóc tách" các thông tin cụ thể (giá, diện tích, loại phòng, đường) 
+ * từ câu nói tự nhiên của người dùng để đưa vào câu lệnh SQL tìm phòng.
+ */
+export function trichXuatThamSo(text: string): ThamSoTimKiem {
+  const params: ThamSoTimKiem = {};
   const lower = text.toLowerCase();
 
-  // Price range: "2-4 triệu", "từ 2 đến 4 triệu"
+  // Lọc khoảng giá: "2-4 triệu", "từ 2 đến 4 triệu"
   const rangeMatch = lower.match(/(\d+(?:[.,]\d+)?)\s*[-–đến tới]+\s*(\d+(?:[.,]\d+)?)\s*(?:triệu|tr)/);
   if (rangeMatch) {
     params.minPrice = parseFloat(rangeMatch[1].replace(',', '.')) * 1_000_000;
     params.maxPrice = parseFloat(rangeMatch[2].replace(',', '.')) * 1_000_000;
   }
 
-  // Max price: "dưới 5 triệu", "không quá 5tr"
+  // Lọc giá trần: "dưới 5 triệu"
   if (!params.maxPrice) {
     const maxMatch = lower.match(/(?:dưới|không quá|tối đa|max)\s*(\d+(?:[.,]\d+)?)\s*(?:triệu|tr)/);
     if (maxMatch) params.maxPrice = parseFloat(maxMatch[1].replace(',', '.')) * 1_000_000;
   }
 
-  // Min price: "trên 2 triệu", "từ 2tr"
+  // Lọc giá sàn: "trên 2 triệu"
   if (!params.minPrice) {
     const minMatch = lower.match(/(?:trên|từ|ít nhất|tối thiểu)\s*(\d+(?:[.,]\d+)?)\s*(?:triệu|tr)/);
     if (minMatch) params.minPrice = parseFloat(minMatch[1].replace(',', '.')) * 1_000_000;
   }
 
-  // Exact price: "tầm 3 triệu", "khoảng 3tr" → ±1 triệu
-  if (!params.minPrice && !params.maxPrice) {
-    const exactMatch = lower.match(/(?:tầm|khoảng|khoảng|giá)?\s*(\d+(?:[.,]\d+)?)\s*(?:triệu|tr)/);
-    if (exactMatch) {
-      const val = parseFloat(exactMatch[1].replace(',', '.')) * 1_000_000;
-      params.minPrice = Math.max(0, val - 1_000_000);
-      params.maxPrice = val + 1_000_000;
-    }
-  }
-
-  // Area: "30m2", "30 mét vuông"
+  // Lọc diện tích: "30m2"
   const areaMatch = lower.match(/(\d+)\s*(?:m2|m²|mét vuông|mét)/);
   if (areaMatch) params.minArea = parseInt(areaMatch[1]);
 
-  // Room type
+  // Lọc loại phòng
   const typeMap: Record<string, string> = {
     'chung cư mini': 'chung cư mini',
     'studio': 'studio',
@@ -122,11 +128,9 @@ export function extractSearchParams(text: string): SearchParams {
     if (lower.includes(keyword)) { params.roomType = type; break; }
   }
 
-  // Tên đường: "đường Ngô Quyền", "phố Lê Duẩn"
-  // Match từ "đường" hoặc "phố" tiếp theo là 1-5 từ tiếng Việt, dừng lại trước các từ khóa dừng
+  // Lọc tên đường: "đường Ngô Quyền"
   const streetMatch = lower.match(/(?:đường|phố)\s+([a-zà-ỹ0-9\s]{2,40}?)(?:\s+(?:quận|q\.|huyện|ở|tại|giá|khoảng|có|cho|thuê|phường|p\.)|$|,|\.)/i);
   if (streetMatch && streetMatch[1].trim()) {
-    // Loại bỏ các từ thừa có thể dính vào
     let streetName = streetMatch[1].trim();
     if (streetName.length > 2) {
       params.street = streetName;
@@ -137,7 +141,7 @@ export function extractSearchParams(text: string): SearchParams {
 }
 
 // ─────────────────────────────────────────────────────────────
-// GEMINI API CALL WITH AUTO-RETRY
+// GỌI GEMINI API VỚI CƠ CHẾ TỰ ĐỘNG THỬ LẠI (Auto-retry)
 // ─────────────────────────────────────────────────────────────
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -145,7 +149,7 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 function parseRetryDelay(error: any): number {
   try {
     const msg = typeof error?.message === 'string' ? error.message : JSON.stringify(error);
-    // Extract retryDelay from error message JSON
+    // Trích xuất thời gian chờ (retryDelay) từ JSON của thông báo lỗi
     const jsonStart = msg.indexOf('{');
     if (jsonStart !== -1) {
       const parsed = JSON.parse(msg.slice(jsonStart));
@@ -155,7 +159,7 @@ function parseRetryDelay(error: any): number {
       if (retryInfo?.retryDelay) return parseInt(String(retryInfo.retryDelay)) + 2;
     }
   } catch {}
-  return 62; // safe default +2s buffer
+  return 62; // Mặc định chờ 60s + 2s dự phòng an toàn
 }
 
 function isRateLimitError(error: any): boolean {
@@ -163,7 +167,12 @@ function isRateLimitError(error: any): boolean {
   return msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota');
 }
 
-export async function callGemini(
+/**
+ * GỌI GOOGLE GEMINI API
+ * Hàm chính thức để gửi văn bản cho AI và nhận câu trả lời. 
+ * Đã tích hợp sẵn cơ chế Retry (thử lại) nếu gặp lỗi Quota (giới hạn lượt gọi).
+ */
+export async function goiAI(
   userText: string,
   systemInstruction: string,
   apiKey: string,
@@ -173,7 +182,7 @@ export async function callGemini(
 ): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
 
-  // Build contents from history + current message
+  // Xây dựng nội dung tin nhắn từ lịch sử + tin nhắn hiện tại
   const contents = [
     ...history.map(h => ({
       role: h.role,

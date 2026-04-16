@@ -1,14 +1,14 @@
 // ============================================================
 // PROBOT KNOWLEDGE SEARCH ENGINE
-// Tìm kiếm và định dạng dữ liệu knowledge base для Gemini RAG
+// Tìm kiếm và định dạng dữ liệu knowledge base cho Gemini RAG
 // ============================================================
 
-import { KNOWLEDGE_BASE, DistrictKnowledge } from './knowledgeBase';
+import { KHO_TRI_THUC, TriThucKhuVuc } from './knowledgeBase';
 
 /**
  * Chuẩn hóa chuỗi: lowercase, bỏ dấu tiếng Việt, trim
  */
-export function normalizeText(text: string): string {
+export function chuanHoaVanBan(text: string): string {
   return text
     .toLowerCase()
     .normalize('NFD')
@@ -19,44 +19,48 @@ export function normalizeText(text: string): string {
 }
 
 /**
- * Tính điểm match giữa query và một DistrictKnowledge
- * Trả về điểm số (0 = không match, càng cao càng phù hợp)
+ * Tính điểm tương đồng giữa câu hỏi (query) và một đối tượng tri thức khu vực.
+ * Hệ thống điểm số giúp xác định quận/huyện nào được người dùng nhắc đến sát nhất.
+ * 
+ * @param query Câu hỏi đã được chuyển về chữ thường
+ * @param knowledge Đối tượng tri thức về một quận
+ * @returns Điểm số phù hợp (càng cao càng đúng)
  */
-function scoreMatch(query: string, knowledge: DistrictKnowledge): number {
-  const normalizedQuery = normalizeText(query);
+function tinhDiemPhuHop(query: string, knowledge: TriThucKhuVuc): number {
+  const normalizedQuery = chuanHoaVanBan(query);
   let score = 0;
 
-  // Check district name
-  if (normalizedQuery.includes(normalizeText(knowledge.district))) {
+  // Kiểm tra tên quận/huyện
+  if (normalizedQuery.includes(chuanHoaVanBan(knowledge.district))) {
     score += 10;
   }
 
-  // Check city name
-  if (normalizedQuery.includes(normalizeText(knowledge.city))) {
+  // Kiểm tra tên thành phố
+  if (normalizedQuery.includes(chuanHoaVanBan(knowledge.city))) {
     score += 3;
   }
 
-  // Check aliases
+  // Kiểm tra các tên gọi khác (aliases)
   for (const alias of knowledge.aliases) {
-    if (normalizedQuery.includes(normalizeText(alias))) {
+    if (normalizedQuery.includes(chuanHoaVanBan(alias))) {
       score += 8;
       break;
     }
   }
 
-  // Check universities
+  // Kiểm tra tên trường đại học (nếu có)
   if (knowledge.universities) {
     for (const uni of knowledge.universities) {
-      if (normalizedQuery.includes(normalizeText(uni))) {
+      if (normalizedQuery.includes(chuanHoaVanBan(uni))) {
         score += 15; // Phù hợp trường ĐH điểm cao nhất vì rất cụ thể
         break;
       }
     }
   }
 
-  // Check individual street names in query
+  // Kiểm tra tên từng con đường cụ thể trong câu hỏi
   for (const street of knowledge.streets) {
-    if (normalizedQuery.includes(normalizeText(street.name))) {
+    if (normalizedQuery.includes(chuanHoaVanBan(street.name))) {
       score += 6;
       break;
     }
@@ -66,35 +70,39 @@ function scoreMatch(query: string, knowledge: DistrictKnowledge): number {
 }
 
 /**
- * Tìm kiếm knowledge phù hợp nhất từ câu hỏi người dùng
- * Trả về district phù hợp nhất hoặc null nếu không tìm thấy
+ * Hàm tìm kiếm tri thức khu vực phù hợp nhất từ câu hỏi của người dùng.
+ * Thường dùng cho các câu hỏi tư vấn khu vực (VD: "Hải Châu có gì?")
+ * 
+ * @param query Câu nhập liệu của người dùng
+ * @returns Đối tượng TriThucKhuVuc tốt nhất hoặc null nếu không khớp
  */
-export function searchKnowledge(query: string): DistrictKnowledge | null {
+export function timKiemTriThuc(query: string): TriThucKhuVuc | null {
   if (!query || query.trim().length === 0) return null;
 
-  let bestMatch: DistrictKnowledge | null = null;
+  let bestMatch: TriThucKhuVuc | null = null;
   let bestScore = 0;
 
-  for (const knowledge of KNOWLEDGE_BASE) {
-    const score = scoreMatch(query, knowledge);
+  // Lặp qua toàn bộ kho dữ liệu để tìm quận có điểm cao nhất
+  for (const knowledge of KHO_TRI_THUC) {
+    const score = tinhDiemPhuHop(query, knowledge);
     if (score > bestScore) {
       bestScore = score;
       bestMatch = knowledge;
     }
   }
 
-  // Chỉ trả về nếu có match tối thiểu (điểm >= 6)
+  // Chỉ trả về nếu điểm số đạt ngưỡng tối thiểu (đã lọc các trường hợp nhầm lẫn)
   return bestScore >= 6 ? bestMatch : null;
 }
 
 /**
- * Tìm nhiều kết quả, dùng khi câu hỏi chung chung về thành phố
+ * Tìm kiếm nhiều khu vực cùng lúc, dùng cho các câu hỏi so sánh hoặc chung chung.
  */
-export function searchKnowledgeMultiple(query: string, limit = 3): DistrictKnowledge[] {
+export function timKiemTriThucNhieu(query: string, limit = 3): TriThucKhuVuc[] {
   if (!query || query.trim().length === 0) return [];
 
-  const scored = KNOWLEDGE_BASE
-    .map((k) => ({ knowledge: k, score: scoreMatch(query, k) }))
+  const scored = KHO_TRI_THUC
+    .map((k) => ({ knowledge: k, score: tinhDiemPhuHop(query, k) }))
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
@@ -103,9 +111,11 @@ export function searchKnowledgeMultiple(query: string, limit = 3): DistrictKnowl
 }
 
 /**
- * Định dạng một DistrictKnowledge thành văn bản context cho Gemini
+ * CHUYỂN ĐỔI TRI THỨC SANG VĂN BẢN (Dùng cho AI)
+ * Chuyển đổi dữ liệu TriThucKhuVuc từ dạng object phức tạp sang định dạng Markdown dễ đọc.
+ * Văn bản này sẽ được gửi làm "context" (ngữ cảnh) cho Gemini để AI có thông tin thực tế tư vấn cho người dùng.
  */
-export function formatKnowledgeForAI(knowledge: DistrictKnowledge): string {
+export function dinhDangTriThucChoAI(knowledge: TriThucKhuVuc): string {
   const lines: string[] = [];
 
   lines.push(`## Khu vực: ${knowledge.district} — ${knowledge.city}`);
@@ -153,7 +163,7 @@ export function formatKnowledgeForAI(knowledge: DistrictKnowledge): string {
 /**
  * Định dạng nhiều kết quả (dùng cho câu hỏi so sánh nhiều quận)
  */
-export function formatMultipleKnowledgeForAI(districts: DistrictKnowledge[]): string {
+export function dinhDangNhieuTriThucChoAI(districts: TriThucKhuVuc[]): string {
   if (districts.length === 0) return '';
-  return districts.map(formatKnowledgeForAI).join('\n\n---\n\n');
+  return districts.map(dinhDangTriThucChoAI).join('\n\n---\n\n');
 }
