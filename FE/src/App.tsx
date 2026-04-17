@@ -9,7 +9,7 @@ import { ManagePage } from './pages/ManagePage';
 // import { StorePage } from './pages/StorePage';
 import { SearchPage } from './pages/SearchPage';
 import { ContactPage } from './pages/ContactPage';
-// import { TenantPage } from './pages/TenantPage';
+import { TenantPage } from './pages/TenantPage';
 // import { AdminPage } from './pages/AdminPage';
 import { ListingDetailPage } from './pages/ListingDetailPage';
 // import { PaymentResultPage } from './pages/PaymentResultPage';
@@ -144,11 +144,11 @@ export default function App() {
             path="/manage" 
             element={<LegacyPageWrapper Component={ManagePage} requireAuth allowedRoles={['landlord', 'admin']} />} 
           />
-          {/*
           <Route 
             path="/tenant" 
             element={<LegacyPageWrapper Component={TenantPage} requireAuth allowedRoles={['tenant', 'admin']} />} 
           />
+          {/*
           <Route 
             path="/admin" 
             element={<LegacyPageWrapper Component={AdminPage} requireAuth allowedRoles={['admin']} />} 

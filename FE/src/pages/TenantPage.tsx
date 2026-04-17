@@ -1,0 +1,294 @@
+import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
+import { supabase } from '../lib/supabase';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { useToast } from '../context/ToastContext';
+import { TenantOverviewTab } from '../components/tenant/TenantOverviewTab';
+import { TenantRoomsTab } from '../components/tenant/TenantRoomsTab';
+import { 
+  Building,
+  LayoutDashboard,
+  Bed,
+  FileText,
+  Wallet,
+  Wrench,
+  MessageSquare,
+  User,
+  LogOut
+} from 'lucide-react';
+
+/**
+ * Interface cho props của trang Người Thuê
+ */
+interface TenantPageProps {
+  onNavigate: (page: string, params?: any) => void;
+  user: SupabaseUser | null;
+  onLogout: () => void;
+  initialParams?: any;
+}
+
+export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: TenantPageProps) => {
+  const { showToast } = useToast();
+  
+  // Các state quản lý giao diện và dữ liệu
+  const [tabHienTai, setTabHienTai] = useState('overview');
+  const [danhSachPhong, setDanhSachPhong] = useState<any[]>([]);
+  const [dangTaiDuLieuPhong, setDangTaiDuLieuPhong] = useState(false);
+  const [hopDongChoXacNhan, setHopDongChoXacNhan] = useState<any[]>([]);
+  const [idHopDongDangKy, setIdHopDongDangKy] = useState<string | null>(null);
+  const [idChatHienTai, setIdChatHienTai] = useState<string | null>(null);
+  const [dangKhoiTaoChat, setDangKhoiTaoChat] = useState(false);
+
+  // Khởi tạo dữ liệu khi người dùng đăng nhập
+  useEffect(() => {
+    if (user) {
+      layDanhSachPhongNguoiThue();
+      layDanhSachHopDongChoKy();
+    }
+  }, [user]);
+
+  /**
+   * Truy xuất danh sách phòng mà người thuê đang ở
+   */
+  const layDanhSachPhongNguoiThue = async () => {
+    if (!user) return;
+    setDangTaiDuLieuPhong(true);
+    try {
+      // Lấy số điện thoại từ profile để tìm phòng
+      const { data: profileCuaToi } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', user.id)
+        .single();
+
+      const soDienThoai = profileCuaToi?.phone || null;
+      if (!soDienThoai) {
+        setDanhSachPhong([]);
+        return;
+      }
+
+      // Gọi RPC để lấy thông tin phòng và hợp đồng liên quan
+      const { data: rooms, error: rpcError } = await supabase
+        .rpc('get_tenant_rooms', { tenant_phone: soDienThoai });
+
+      if (rpcError) throw rpcError;
+
+      if (rooms && rooms.length > 0) {
+        const mapped = rooms.map((r: any) => ({
+          id: r.id || r.room_id,
+          title: r.title || r.room_title,
+          price: r.price || r.room_price,
+          type: r.type || r.room_type,
+          area: r.area || r.room_area,
+          status: r.status || r.room_status,
+          image_url: r.image_url || r.room_image_url,
+          note: r.note || r.room_note,
+          contract_id: r.contract_id,
+          contract_start: r.contract_start,
+          contract_end: r.contract_end,
+          contract_deposit: r.contract_deposit || r.deposit,
+          landlord_name: r.landlord_name || 'Chủ trọ',
+          landlord_phone: r.landlord_phone || '',
+          electricity_price: r.electricity_price,
+          water_price: r.water_price,
+          service_fee: r.service_fee,
+          owner_id: r.owner_id
+        }));
+        setDanhSachPhong(mapped);
+      } else {
+        setDanhSachPhong([]);
+      }
+    } catch (error) {
+      console.error('[TenantRooms] Lỗi:', error);
+    } finally {
+      setDangTaiDuLieuPhong(false);
+    }
+  };
+
+  /**
+   * Truy xuất các hợp đồng đang chờ người thuê ký xác nhận
+   */
+  const layDanhSachHopDongChoKy = async () => {
+    if (!user) return;
+    try {
+      const { data: duLieuHopDong, error } = await supabase
+        .rpc('get_pending_contracts', { p_tenant_id: user.id });
+
+      if (error) throw error;
+      setHopDongChoXacNhan(duLieuHopDong || []);
+    } catch (err) {
+      console.error('Lỗi khi lấy hợp đồng chờ ký:', err);
+      setHopDongChoXacNhan([]);
+    }
+  };
+
+  /**
+   * Xử lý hành động ký xác nhận hợp đồng điện tử
+   */
+  const xuLyKyHopDong = async (contract: any) => {
+    setIdHopDongDangKy(contract.id);
+    try {
+      const { error: rpcError } = await supabase.rpc('accept_contract', { 
+        p_contract_id: contract.id 
+      });
+      
+      if (rpcError) throw rpcError;
+      // Tải lại dữ liệu sau khi ký thành công
+      await Promise.all([layDanhSachPhongNguoiThue(), layDanhSachHopDongChoKy()]);
+      showToast('Ký hợp đồng thành công!', 'success');
+    } catch (err) {
+      console.error('Lỗi ký hợp đồng:', err);
+      showToast('Lỗi ký hợp đồng.', 'error');
+    } finally {
+      setIdHopDongDangKy(null);
+    }
+  };
+
+  /**
+   * Xử lý hành động từ chối lời mời ký hợp đồng
+   */
+  const xuLyTuChoiHopDong = async (contract: any) => {
+    if (!window.confirm(`Bạn có chắc muốn TỪ CHỐI hợp đồng phòng ${contract.rooms?.title}?`)) return;
+    
+    setIdHopDongDangKy(contract.id);
+    try {
+      const { error: rpcError } = await supabase.rpc('reject_contract', { 
+        p_contract_id: contract.id 
+      });
+      if (rpcError) throw rpcError;
+      await layDanhSachHopDongChoKy();
+      showToast('Đã từ chối lời mời hợp đồng.', 'success');
+    } catch (err) {
+      console.error('Lỗi từ chối hợp đồng:', err);
+      showToast('Lỗi từ chối hợp đồng.', 'error');
+    } finally {
+      setIdHopDongDangKy(null);
+    }
+  };
+
+  /**
+   * Khởi tạo hoặc chuyển hướng đến cuộc hội thoại với chủ trọ
+   */
+  const xuLyBatDauChat = async (owner_id: string) => {
+    if (!owner_id || !user) {
+      setTabHienTai('messages');
+      return;
+    }
+    setDangKhoiTaoChat(true);
+    try {
+      // Tìm kiếm hội thoại hiện có
+      const { data: hoiThoaiDaCo } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('tenant_id', user.id)
+        .eq('landlord_id', owner_id);
+
+      let idCuocHoiThoai: string | null = null;
+      if (hoiThoaiDaCo && hoiThoaiDaCo.length > 0) {
+        idCuocHoiThoai = hoiThoaiDaCo[0].id;
+      } else {
+        // Tạo hội thoại mới nếu chưa có
+        const { data: hoiThoaiMoi } = await supabase
+          .from('conversations')
+          .insert({ tenant_id: user.id, landlord_id: owner_id })
+          .select('id')
+          .single();
+        if (hoiThoaiMoi) idCuocHoiThoai = hoiThoaiMoi.id;
+      }
+      if (idCuocHoiThoai) setIdChatHienTai(idCuocHoiThoai);
+    } catch (err) {
+      console.error('Lỗi khởi tạo chat:', err);
+    } finally {
+      setDangKhoiTaoChat(false);
+      setTabHienTai('messages');
+    }
+  };
+
+  // Danh mục menu điều hướng
+  const danhMucMenu = [
+    { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
+    { id: 'rooms', label: 'Phòng của tôi', icon: Bed },
+  ];
+
+  // Dữ liệu giả lập biểu đồ điện năng
+  const duLieuDienNangTheoThang = [
+    { month: 'T11', height: '60%' },
+    { month: 'T12', height: '85%' },
+    { month: 'T1', height: '40%' },
+    { month: 'T2', height: '30%' },
+    { month: 'T3', height: '55%' },
+    { month: 'T4', height: '70%', isCurrent: true },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="flex flex-1">
+        {/* Thanh Sidebar bên trái */}
+        <aside className="hidden lg:flex w-72 bg-white border-r border-slate-200 flex-col sticky top-16 h-[calc(100vh-64px)] overflow-y-auto">
+          <div className="p-6 flex-1">
+            <div className="flex items-center gap-3 text-primary mb-8 cursor-pointer" onClick={() => onNavigate('home')}>
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                <Building className="w-6 h-6" />
+              </div>
+              <h2 className="text-lg font-bold text-slate-900 font-display">Người Thuê</h2>
+            </div>
+            
+            <nav className="space-y-1">
+            {danhMucMenu.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setTabHienTai(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${
+                  tabHienTai === item.id 
+                    ? 'bg-primary/10 text-primary' 
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span>{item.label}</span>
+              </button>
+            ))}
+            </nav>
+          </div>
+        </aside>
+
+        {/* Nội dung chính dựa trên tab được chọn */}
+        <main className={`flex-1 flex flex-col p-4 md:p-8 lg:p-10 max-w-7xl mx-auto w-full overflow-y-auto`}>
+          {tabHienTai === 'overview' && (
+            <TenantOverviewTab 
+              nguoiDung={user} 
+              danhSachPhong={danhSachPhong} 
+              hopDongChoKy={hopDongChoXacNhan} 
+              dangTaiPhong={dangTaiDuLieuPhong} 
+              dienNangTheoThang={duLieuDienNangTheoThang}
+              idHopDongDangKy={idHopDongDangKy} 
+              xuLyKyHopDong={xuLyKyHopDong} 
+              xuLyTuChoiHopDong={xuLyTuChoiHopDong} 
+              onNavigate={onNavigate} 
+            />
+          )}
+
+          {tabHienTai === 'rooms' && (
+            <TenantRoomsTab 
+              danhSachPhong={danhSachPhong} 
+              dangTaiPhong={dangTaiDuLieuPhong} 
+              onNavigate={onNavigate} 
+              xuLyBatDauChat={xuLyBatDauChat}
+              dangKhoiTaoChat={dangKhoiTaoChat}
+              user={user}
+            />
+          )}
+
+          {/* Placeholder cho các tính năng chưa phát triển */}
+          {tabHienTai !== 'overview' && tabHienTai !== 'rooms' && (
+            <div className="flex flex-col items-center justify-center h-96 text-slate-400">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-300" />
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Tính năng đang phát triển</h3>
+              <p className="text-sm">Trang {danhMucMenu.find(i => i.id === tabHienTai)?.label} sẽ sớm ra mắt.</p>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+};
