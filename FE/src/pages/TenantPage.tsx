@@ -8,6 +8,7 @@ import { TenantRoomsTab } from '../components/tenant/TenantRoomsTab';
 import { TenantContractsTab } from '../components/tenant/TenantContractsTab';
 import { TenantInvoicesTab } from '../components/tenant/TenantInvoicesTab';
 import { InvoiceDetailModal } from '../components/tenant/modals/InvoiceDetailModal';
+import { TenantSupportModal } from '../components/tenant/TenantSupportModal';
 import { 
   Building,
   LayoutDashboard,
@@ -45,12 +46,20 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
+  // State quản lý Yêu cầu hỗ trợ
+  const [danhSachHoTro, setDanhSachHoTro] = useState<any[]>([]);
+  const [dangTaiHoTro, setDangTaiHoTro] = useState(false);
+  const [hienThiModalHoTro, setHienThiModalHoTro] = useState(false);
+  const [formYeuCauMoi, setFormYeuCauMoi] = useState({ roomId: '', title: '', description: '' });
+  const [dangGuiYeuCau, setDangGuiYeuCau] = useState(false);
+
   // Khởi tạo dữ liệu khi người dùng đăng nhập
   useEffect(() => {
     if (user) {
       layDanhSachPhongNguoiThue();
       layDanhSachHopDongChoKy();
       fetchTenantInvoices();
+      layDanhSachHoTro();
     }
   }, [user]);
 
@@ -230,6 +239,62 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
     }
   };
 
+  const layDanhSachHoTro = async () => {
+    if (!user) return;
+    setDangTaiHoTro(true);
+    try {
+      const { data, error } = await supabase
+        .from('support_requests')
+        .select(`*, rooms(title)`)
+        .eq('tenant_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setDanhSachHoTro(data || []);
+    } catch (err) {
+      console.error('Lỗi khi tải danh sách hỗ trợ:', err);
+    } finally {
+      setDangTaiHoTro(false);
+    }
+  };
+
+  const xuLyGuiYeuCau = async () => {
+    if (!formYeuCauMoi.roomId || !formYeuCauMoi.title || !formYeuCauMoi.description) return;
+    
+    setDangGuiYeuCau(true);
+    try {
+      const { data: roomData, error: roomError } = await supabase
+        .from('rooms')
+        .select('owner_id')
+        .eq('id', formYeuCauMoi.roomId)
+        .single();
+        
+      if (roomError || !roomData?.owner_id) {
+        showToast('Không tìm thấy thông tin phòng.', 'error');
+        return;
+      }
+      
+      const { error } = await supabase.from('support_requests').insert({
+        tenant_id: user?.id,
+        room_id: formYeuCauMoi.roomId,
+        landlord_id: roomData.owner_id,
+        title: formYeuCauMoi.title,
+        description: formYeuCauMoi.description,
+        status: 'pending'
+      });
+      if (error) throw error;
+      setHienThiModalHoTro(false);
+      setFormYeuCauMoi({ roomId: '', title: '', description: '' });
+      await layDanhSachHoTro();
+      showToast('Gửi yêu cầu hỗ trợ thành công!', 'success');
+    } catch (err) {
+      console.error('Lỗi khi gửi yêu cầu:', err);
+      showToast('Đã có lỗi xảy ra.', 'error');
+    } finally {
+      setDangGuiYeuCau(false);
+    }
+  };
+
   const xuLyThanhToanHoaDon = async (invoiceId: string) => {
     if (!window.confirm('Xác nhận bạn đã chuyển khoản số tiền này cho Chủ Trọ?')) return;
     try {
@@ -314,6 +379,12 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
               xuLyKyHopDong={xuLyKyHopDong} 
               xuLyTuChoiHopDong={xuLyTuChoiHopDong} 
               onNavigate={onNavigate} 
+              // Thêm props support
+              danhSachHoTro={danhSachHoTro}
+              layDanhSachHoTro={layDanhSachHoTro}
+              dangTaiHoTro={dangTaiHoTro}
+              setHienThiModalHoTro={setHienThiModalHoTro}
+              setFormYeuCauMoi={setFormYeuCauMoi}
             />
           )}
 
@@ -362,6 +433,16 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
         dongModal={() => setShowInvoiceModal(false)}
         hoaDon={selectedInvoice}
         xuLyThanhToan={selectedInvoice?.status === 'unpaid' ? () => xuLyThanhToanHoaDon(selectedInvoice.id) : undefined}
+      />
+
+      <TenantSupportModal 
+        hienThiModalHoTro={hienThiModalHoTro} 
+        setHienThiModalHoTro={setHienThiModalHoTro} 
+        formYeuCauMoi={formYeuCauMoi} 
+        setFormYeuCauMoi={setFormYeuCauMoi} 
+        danhSachPhong={danhSachPhong} 
+        dangGuiYeuCau={dangGuiYeuCau} 
+        xuLyGuiYeuCau={xuLyGuiYeuCau} 
       />
     </div>
   );

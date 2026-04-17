@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { 
-  PlusCircle, Clock, BadgeCheck, User, Building, Calendar, Wallet, Layers, CheckCircle, MapPin, MessageCircle, Search
+  PlusCircle, Clock, BadgeCheck, User, Building, Calendar, Wallet, Layers, CheckCircle, MapPin, MessageCircle, Search, Wrench
 } from 'lucide-react';
 
 /**
@@ -17,6 +17,11 @@ interface TenantOverviewTabProps {
   xuLyKyHopDong: (contract: any) => void;
   xuLyTuChoiHopDong: (contract: any) => void;
   onNavigate: any;
+  danhSachHoTro?: any[];
+  layDanhSachHoTro?: () => void;
+  dangTaiHoTro?: boolean;
+  setHienThiModalHoTro?: (show: boolean) => void;
+  setFormYeuCauMoi?: any;
 }
 
 export const TenantOverviewTab = ({ 
@@ -28,7 +33,12 @@ export const TenantOverviewTab = ({
   idHopDongDangKy, 
   xuLyKyHopDong, 
   xuLyTuChoiHopDong, 
-  onNavigate
+  onNavigate,
+  danhSachHoTro = [],
+  layDanhSachHoTro,
+  dangTaiHoTro = false,
+  setHienThiModalHoTro,
+  setFormYeuCauMoi
 }: TenantOverviewTabProps) => {
   const thangHienTai = new Date().getMonth() + 1;
 
@@ -298,6 +308,55 @@ export const TenantOverviewTab = ({
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Support Requests */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <h3 className="text-lg font-bold">Yêu cầu hỗ trợ gần đây</h3>
+          <button 
+            onClick={() => {
+              if (danhSachPhong.length > 0) {
+                setFormYeuCauMoi?.((f: any) => ({ ...f, roomId: danhSachPhong[0].id }));
+              }
+              setHienThiModalHoTro?.(true);
+            }}
+            className="text-sm font-semibold text-primary hover:underline flex items-center gap-1"
+          >
+            <PlusCircle className="w-4 h-4" /> Gửi yêu cầu
+          </button>
+        </div>
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          {dangTaiHoTro ? (
+            <div className="p-8 flex justify-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
+          ) : danhSachHoTro.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 font-bold text-sm">Chưa có yêu cầu hỗ trợ nào.</div>
+          ) : danhSachHoTro.slice(0, 5).map((req) => {
+            const statusText = req.status === 'pending' ? 'Đã gửi' : req.status === 'processing' ? 'Đang xử lý' : 'Hoàn thành';
+            const statusColor = req.status === 'pending' ? 'bg-slate-100 text-slate-700 border-slate-200' : req.status === 'processing' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-green-100 text-green-700 border-green-200';
+            const iconBg = req.status === 'pending' ? 'bg-slate-100' : req.status === 'processing' ? 'bg-amber-100' : 'bg-green-100';
+            const Icon = req.status === 'pending' ? MessageCircle : req.status === 'processing' ? Wrench : CheckCircle;
+            const date = new Date(req.created_at).toLocaleDateString('vi-VN');
+            
+            return (
+            <div key={req.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group cursor-pointer gap-4">
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}>
+                  <Icon className={`w-5 h-5 ${req.status === 'pending' ? 'text-slate-600' : req.status === 'processing' ? 'text-amber-600' : 'text-green-600'}`} />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{req.title}</p>
+                  <p className="text-xs text-slate-500">Phòng: {req.rooms?.title} &bull; {date}</p>
+                </div>
+              </div>
+              <div className="flex items-center self-start md:self-auto shrink-0">
+                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${statusColor}`}>
+                  {statusText}
+                </span>
+              </div>
+            </div>
+          )})}
         </div>
       </div>
     </motion.div>
