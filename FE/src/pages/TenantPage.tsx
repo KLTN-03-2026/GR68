@@ -8,7 +8,9 @@ import { TenantRoomsTab } from '../components/tenant/TenantRoomsTab';
 import { TenantContractsTab } from '../components/tenant/TenantContractsTab';
 import { TenantInvoicesTab } from '../components/tenant/TenantInvoicesTab';
 import { InvoiceDetailModal } from '../components/tenant/modals/InvoiceDetailModal';
-import { TenantSupportModal } from '../components/tenant/TenantSupportModal';
+import { TenantSupportModal } from '../components/tenant/modals/TenantSupportModal';
+import { TenantSupportTab } from '../components/tenant/TenantSupportTab';
+import Messaging from '../components/shared/Messaging';
 import { 
   Building,
   LayoutDashboard,
@@ -322,6 +324,8 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
     { id: 'rooms', label: 'Phòng của tôi', icon: Bed },
     { id: 'contracts', label: 'Hợp đồng', icon: FileText },
     { id: 'invoices', label: 'Hóa đơn', icon: Wallet },
+    { id: 'support', label: 'Hỗ trợ', icon: Wrench },
+    { id: 'messages', label: 'Tin nhắn', icon: MessageSquare },
   ];
 
   // Dữ liệu giả lập biểu đồ điện năng
@@ -417,8 +421,28 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
             />
           )}
 
+          {tabHienTai === 'support' && (
+            <TenantSupportTab
+              danhSachHoTro={danhSachHoTro}
+              dangTaiDuLieu={dangTaiHoTro}
+              danhSachPhong={danhSachPhong}
+              setHienThiModalThem={setHienThiModalHoTro}
+              setFormYeuCauMoi={setFormYeuCauMoi}
+            />
+          )}
+
+          {tabHienTai === 'messages' && (
+            <div className="flex flex-1 overflow-hidden h-[calc(100vh-64px)] rounded-2xl border border-slate-200 shadow-sm">
+              <Messaging 
+                nguoiDung={user} 
+                vaiTro="tenant" 
+                idHoiThoaiBanDau={idChatHienTai ?? undefined} 
+              />
+            </div>
+          )}
+
           {/* Placeholder cho các tính năng chưa phát triển */}
-          {tabHienTai !== 'overview' && tabHienTai !== 'rooms' && tabHienTai !== 'contracts' && tabHienTai !== 'invoices' && (
+          {tabHienTai !== 'overview' && tabHienTai !== 'rooms' && tabHienTai !== 'contracts' && tabHienTai !== 'invoices' && tabHienTai !== 'support' && tabHienTai !== 'messages' && (
             <div className="flex flex-col items-center justify-center h-96 text-slate-400">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-300" />
               <h3 className="text-lg font-bold text-slate-900 mb-2">Tính năng đang phát triển</h3>
