@@ -5,6 +5,9 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useToast } from '../context/ToastContext';
 import { TenantOverviewTab } from '../components/tenant/TenantOverviewTab';
 import { TenantRoomsTab } from '../components/tenant/TenantRoomsTab';
+import { TenantContractsTab } from '../components/tenant/TenantContractsTab';
+import { TenantInvoicesTab } from '../components/tenant/TenantInvoicesTab';
+import { InvoiceDetailModal } from '../components/tenant/modals/InvoiceDetailModal';
 import { 
   Building,
   LayoutDashboard,
@@ -38,12 +41,16 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
   const [idHopDongDangKy, setIdHopDongDangKy] = useState<string | null>(null);
   const [idChatHienTai, setIdChatHienTai] = useState<string | null>(null);
   const [dangKhoiTaoChat, setDangKhoiTaoChat] = useState(false);
+  const [tenantInvoices, setTenantInvoices] = useState<any[]>([]);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   // Khởi tạo dữ liệu khi người dùng đăng nhập
   useEffect(() => {
     if (user) {
       layDanhSachPhongNguoiThue();
       layDanhSachHopDongChoKy();
+      fetchTenantInvoices();
     }
   }, [user]);
 
@@ -204,10 +211,52 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
     }
   };
 
+  const fetchTenantInvoices = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          rooms (id, title)
+        `)
+        .eq('tenant_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setTenantInvoices(data || []);
+    } catch (err) {
+      console.error('Lỗi khi lấy hóa đơn:', err);
+    }
+  };
+
+  const xuLyThanhToanHoaDon = async (invoiceId: string) => {
+    if (!window.confirm('Xác nhận bạn đã chuyển khoản số tiền này cho Chủ Trọ?')) return;
+    try {
+      const { error } = await supabase
+        .from('invoices')
+        .update({ 
+          status: 'pending_verification',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', invoiceId);
+
+      if (error) throw error;
+      showToast('Đã gửi yêu cầu xác nhận thanh toán!', 'success');
+      await fetchTenantInvoices();
+      setShowInvoiceModal(false);
+    } catch (err) {
+      console.error('Lỗi thanh toán hóa đơn:', err);
+      showToast('Lỗi khi cập nhật trạng thái thanh toán.', 'error');
+    }
+  };
+
   // Danh mục menu điều hướng
   const danhMucMenu = [
     { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
     { id: 'rooms', label: 'Phòng của tôi', icon: Bed },
+    { id: 'contracts', label: 'Hợp đồng', icon: FileText },
+    { id: 'invoices', label: 'Hóa đơn', icon: Wallet },
   ];
 
   // Dữ liệu giả lập biểu đồ điện năng
@@ -279,8 +328,26 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
             />
           )}
 
+          {tabHienTai === 'contracts' && (
+            <TenantContractsTab 
+              danhSachPhong={danhSachPhong}
+              dangTaiDuLieu={dangTaiDuLieuPhong}
+            />
+          )}
+
+          {tabHienTai === 'invoices' && (
+            <TenantInvoicesTab 
+              danhSachHoaDon={tenantInvoices}
+              xuLyXemChiTiet={(hoaDon) => {
+                setSelectedInvoice(hoaDon);
+                setShowInvoiceModal(true);
+              }}
+              xuLyThanhToan={xuLyThanhToanHoaDon}
+            />
+          )}
+
           {/* Placeholder cho các tính năng chưa phát triển */}
-          {tabHienTai !== 'overview' && tabHienTai !== 'rooms' && (
+          {tabHienTai !== 'overview' && tabHienTai !== 'rooms' && tabHienTai !== 'contracts' && tabHienTai !== 'invoices' && (
             <div className="flex flex-col items-center justify-center h-96 text-slate-400">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-300" />
               <h3 className="text-lg font-bold text-slate-900 mb-2">Tính năng đang phát triển</h3>
@@ -289,6 +356,13 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
           )}
         </main>
       </div>
+
+      <InvoiceDetailModal
+        hienThi={showInvoiceModal}
+        dongModal={() => setShowInvoiceModal(false)}
+        hoaDon={selectedInvoice}
+        xuLyThanhToan={selectedInvoice?.status === 'unpaid' ? () => xuLyThanhToanHoaDon(selectedInvoice.id) : undefined}
+      />
     </div>
   );
 };
