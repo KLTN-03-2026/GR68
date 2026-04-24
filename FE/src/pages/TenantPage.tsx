@@ -8,7 +8,10 @@ import { TenantRoomsTab } from '../components/tenant/TenantRoomsTab';
 import { TenantContractsTab } from '../components/tenant/TenantContractsTab';
 import { TenantInvoicesTab } from '../components/tenant/TenantInvoicesTab';
 import { InvoiceDetailModal } from '../components/tenant/modals/InvoiceDetailModal';
-import { TenantSupportModal } from '../components/tenant/TenantSupportModal';
+import { TenantSupportModal } from '../components/tenant/modals/TenantSupportModal';
+import { TenantSupportTab } from '../components/tenant/TenantSupportTab';
+import { TabTaiKhoanNguoiThue } from '../components/tenant/TenantAccountTab';
+import Messaging from '../components/shared/Messaging';
 import { 
   Building,
   LayoutDashboard,
@@ -53,6 +56,24 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
   const [formYeuCauMoi, setFormYeuCauMoi] = useState({ roomId: '', title: '', description: '' });
   const [dangGuiYeuCau, setDangGuiYeuCau] = useState(false);
 
+  // State form hồ sơ
+  const [formHoSo, setFormHoSo] = useState({
+    full_name: '', phone: '', gender: '', birth_date: '',
+    permanent_address: '',
+    id_card_number: '', id_card_date: '', id_card_place: '',
+    bank_name: '', bank_account_number: '', bank_account_name: '',
+    zalo_phone: '', emergency_contact_name: '', emergency_contact_phone: ''
+  });
+  const [dangTaiHoSo, setDangTaiHoSo] = useState(false);
+  const [dangLuuHoSo, setDangLuuHoSo] = useState(false);
+  const [thongBaoLuuHoSo, setThongBaoLuuHoSo] = useState('');
+
+  // State đổi mật khẩu
+  const [formMatKhau, setFormMatKhau] = useState({ cu: '', moi: '', xac_nhan: '' });
+  const [dangDoiMatKhau, setDangDoiMatKhau] = useState(false);
+  const [thongBaoMatKhau, setThongBaoMatKhau] = useState('');
+  const [hienThiMatKhau, setHienThiMatKhau] = useState(false);
+
   // Khởi tạo dữ liệu khi người dùng đăng nhập
   useEffect(() => {
     if (user) {
@@ -60,8 +81,101 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
       layDanhSachHopDongChoKy();
       fetchTenantInvoices();
       layDanhSachHoTro();
+      taiThongTinHoSo();
     }
   }, [user]);
+
+  /**
+   * Tải thông tin hồ sơ cá nhân hiện tại
+   */
+  const taiThongTinHoSo = async () => {
+    if (!user) return;
+    setDangTaiHoSo(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (data) {
+        setFormHoSo({
+          full_name: data.full_name || '',
+          phone: data.phone || '',
+          gender: data.gender || '',
+          birth_date: data.birth_date || '',
+          permanent_address: data.permanent_address || '',
+          id_card_number: data.id_card_number || '',
+          id_card_date: data.id_card_date || '',
+          id_card_place: data.id_card_place || '',
+          bank_name: data.bank_name || '',
+          bank_account_number: data.bank_account_number || '',
+          bank_account_name: data.bank_account_name || '',
+          zalo_phone: data.zalo_phone || '',
+          emergency_contact_name: data.emergency_contact_name || '',
+          emergency_contact_phone: data.emergency_contact_phone || ''
+        });
+      }
+    } catch (err) {
+      console.error('Lỗi khi tải thông tin cá nhân:', err);
+    } finally {
+      setDangTaiHoSo(false);
+    }
+  };
+
+  /**
+   * Xử lý lưu các thay đổi hồ sơ cá nhân
+   */
+  const xuLyLuuHoSo = async () => {
+    if (!user) return;
+    setDangLuuHoSo(true);
+    setThongBaoLuuHoSo('');
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(formHoSo)
+        .eq('id', user.id);
+
+      if (error) throw error;
+      setThongBaoLuuHoSo('Cập nhật hồ sơ thành công!');
+      showToast('Cập nhật hồ sơ thành công!', 'success');
+      taiThongTinHoSo();
+    } catch (err: any) {
+      console.error('Lỗi lưu thay đổi hồ sơ:', err);
+      setThongBaoLuuHoSo('Có lỗi xảy ra: ' + err.message);
+      showToast('Lỗi cập nhật hồ sơ: ' + err.message, 'error');
+    } finally {
+      setDangLuuHoSo(false);
+    }
+  };
+
+  /**
+   * Xử lý thay đổi mật khẩu
+   */
+  const xuLyDoiMatKhau = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formMatKhau.moi !== formMatKhau.xac_nhan) {
+      setThongBaoMatKhau('Mật khẩu xác nhận không khớp');
+      return;
+    }
+    setDangDoiMatKhau(true);
+    setThongBaoMatKhau('');
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: formMatKhau.moi
+      });
+      if (error) throw error;
+      setThongBaoMatKhau('Cập nhật mật khẩu thành công!');
+      showToast('Đổi mật khẩu thành công!', 'success');
+      setFormMatKhau({ cu: '', moi: '', xac_nhan: '' });
+    } catch (err: any) {
+      console.error('Lỗi cập nhật mật khẩu:', err);
+      setThongBaoMatKhau('Lỗi: ' + err.message);
+      showToast('Lỗi đổi mật khẩu: ' + err.message, 'error');
+    } finally {
+      setDangDoiMatKhau(false);
+    }
+  };
 
   /**
    * Truy xuất danh sách phòng mà người thuê đang ở
@@ -322,6 +436,9 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
     { id: 'rooms', label: 'Phòng của tôi', icon: Bed },
     { id: 'contracts', label: 'Hợp đồng', icon: FileText },
     { id: 'invoices', label: 'Hóa đơn', icon: Wallet },
+    { id: 'support', label: 'Hỗ trợ', icon: Wrench },
+    { id: 'messages', label: 'Tin nhắn', icon: MessageSquare },
+    { id: 'account', label: 'Tài khoản', icon: User },
   ];
 
   // Dữ liệu giả lập biểu đồ điện năng
@@ -417,8 +534,49 @@ export const TenantPage = ({ onNavigate, user, onLogout, initialParams }: Tenant
             />
           )}
 
+          {tabHienTai === 'support' && (
+            <TenantSupportTab
+              danhSachHoTro={danhSachHoTro}
+              dangTaiDuLieu={dangTaiHoTro}
+              danhSachPhong={danhSachPhong}
+              setHienThiModalThem={setHienThiModalHoTro}
+              setFormYeuCauMoi={setFormYeuCauMoi}
+            />
+          )}
+
+          {tabHienTai === 'messages' && (
+            <div className="flex flex-1 overflow-hidden h-[calc(100vh-64px)] rounded-2xl border border-slate-200 shadow-sm">
+              <Messaging 
+                nguoiDung={user} 
+                vaiTro="tenant" 
+                idHoiThoaiBanDau={idChatHienTai ?? undefined} 
+              />
+            </div>
+          )}
+
+          {tabHienTai === 'account' && (
+            <TabTaiKhoanNguoiThue 
+              nguoiDung={user} 
+              danhSachPhong={danhSachPhong}
+              formHoSo={formHoSo} 
+              setFormHoSo={setFormHoSo} 
+              dangTaiHoSo={dangTaiHoSo} 
+              dangLuuHoSo={dangLuuHoSo} 
+              thongBaoLuuHoSo={thongBaoLuuHoSo} 
+              xuLyLuuHoSo={xuLyLuuHoSo} 
+              formMatKhau={formMatKhau} 
+              setFormMatKhau={setFormMatKhau} 
+              dangDoiMatKhau={dangDoiMatKhau} 
+              thongBaoMatKhau={thongBaoMatKhau} 
+              hienThiMatKhau={hienThiMatKhau} 
+              setHienThiMatKhau={setHienThiMatKhau} 
+              xuLyDoiMatKhau={xuLyDoiMatKhau} 
+              xuLyDangXuat={onLogout} 
+            />
+          )}
+
           {/* Placeholder cho các tính năng chưa phát triển */}
-          {tabHienTai !== 'overview' && tabHienTai !== 'rooms' && tabHienTai !== 'contracts' && tabHienTai !== 'invoices' && (
+          {tabHienTai !== 'overview' && tabHienTai !== 'rooms' && tabHienTai !== 'contracts' && tabHienTai !== 'invoices' && tabHienTai !== 'support' && tabHienTai !== 'messages' && tabHienTai !== 'account' && (
             <div className="flex flex-col items-center justify-center h-96 text-slate-400">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-300" />
               <h3 className="text-lg font-bold text-slate-900 mb-2">Tính năng đang phát triển</h3>

@@ -29,7 +29,7 @@ export const MessagesTab = ({ user }: MessagesTabProps) => {
               animate={{ opacity: 1 }}
               className="flex flex-1 overflow-hidden h-[calc(100vh-64px)] rounded-2xl border border-slate-200 shadow-sm"
             >
-              <Messaging user={user} role="landlord" />
+              <Messaging nguoiDung={user} vaiTro="landlord" />
             </motion.div>
           )}
     </>
