@@ -52,8 +52,8 @@ export const AdminOrdersTab = ({
   layChuCaiDau
 }: AdminOrdersTabProps) => {
 
-  const layKieuTrangThai = (status: string) => {
-    switch (status) {
+  const layKieuTrangThai = (trangThai: string) => {
+    switch (trangThai) {
       case 'completed':
       case 'delivered': return 'bg-emerald-100 text-emerald-600 border-emerald-200';
       case 'shipping': return 'bg-blue-100 text-blue-600 border-blue-200';
@@ -64,8 +64,8 @@ export const AdminOrdersTab = ({
     }
   };
 
-  const layNhanTrangThai = (status: string) => {
-    const labels: Record<string, string> = {
+  const layNhanTrangThai = (trangThai: string) => {
+    const bangNhanTrangThai: Record<string, string> = {
       pending: 'Chờ xác nhận',
       confirmed: 'Đã xác nhận',
       shipping: 'Đang giao',
@@ -74,23 +74,23 @@ export const AdminOrdersTab = ({
       failed: 'Lỗi/Thất bại',
       cancelled: 'Đã hủy'
     };
-    return labels[status] || status;
+    return bangNhanTrangThai[trangThai] || trangThai;
   };
 
   const thongKe = {
     total: danhSachDonHang.length,
-    pending: danhSachDonHang.filter(o => o.status === 'pending' || o.status === 'confirmed').length,
-    completed: danhSachDonHang.filter(o => o.status === 'completed' || o.status === 'delivered').length,
-    failed: danhSachDonHang.filter(o => o.status === 'cancelled' || o.status === 'failed').length
+    pending: danhSachDonHang.filter(donHang => donHang.status === 'pending' || donHang.status === 'confirmed').length,
+    completed: danhSachDonHang.filter(donHang => donHang.status === 'completed' || donHang.status === 'delivered').length,
+    failed: danhSachDonHang.filter(donHang => donHang.status === 'cancelled' || donHang.status === 'failed').length
   };
 
   const [tabHienTai, setTabHienTai] = React.useState('all');
 
-  const donHangDaLoc = danhSachDonHang.filter(o => {
+  const donHangDaLoc = danhSachDonHang.filter(donHang => {
     if (tabHienTai === 'all') return true;
-    if (tabHienTai === 'pending') return o.status === 'pending' || o.status === 'confirmed';
-    if (tabHienTai === 'completed') return o.status === 'completed' || o.status === 'delivered';
-    if (tabHienTai === 'failed') return o.status === 'cancelled' || o.status === 'failed';
+    if (tabHienTai === 'pending') return donHang.status === 'pending' || donHang.status === 'confirmed';
+    if (tabHienTai === 'completed') return donHang.status === 'completed' || donHang.status === 'delivered';
+    if (tabHienTai === 'failed') return donHang.status === 'cancelled' || donHang.status === 'failed';
     return true;
   });
 
@@ -155,17 +155,17 @@ export const AdminOrdersTab = ({
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">
         <div className="flex border-b border-slate-200 px-6 shrink-0 bg-slate-50/50">
-          {['all', 'pending', 'completed', 'failed'].map((tab) => (
+          {['all', 'pending', 'completed', 'failed'].map((tenTab) => (
             <button 
-              key={tab}
-              onClick={() => setTabHienTai(tab)}
+              key={tenTab}
+              onClick={() => setTabHienTai(tenTab)}
               className={`py-4 px-6 border-b-2 font-black text-sm whitespace-nowrap uppercase transition-all ${
-                tabHienTai === tab 
+                tabHienTai === tenTab 
                   ? 'border-primary text-primary' 
                   : 'border-transparent text-slate-500 hover:text-slate-700 font-bold'
               }`}
             >
-              {tab === 'all' ? 'Tất cả đơn' : tab === 'pending' ? 'Đang xử lý' : tab === 'completed' ? 'Thành công' : 'Đã hủy'}
+              {tenTab === 'all' ? 'Tất cả đơn' : tenTab === 'pending' ? 'Đang xử lý' : tenTab === 'completed' ? 'Thành công' : 'Đã hủy'}
             </button>
           ))}
         </div>
@@ -196,35 +196,35 @@ export const AdminOrdersTab = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {donHangDaLoc.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                {donHangDaLoc.map((donHang) => (
+                  <tr key={donHang.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-6">
                       <div className="flex flex-col gap-1">
-                        <span className="text-xs font-black text-slate-900 uppercase">#{order.id.substring(0,8)}</span>
+                        <span className="text-xs font-black text-slate-900 uppercase">#{donHang.id.substring(0,8)}</span>
                         <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
                           <Clock className="w-3 h-3" />
-                          {dinhDangNgay(order.created_at)}
+                          {dinhDangNgay(donHang.created_at)}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-6">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-primary overflow-hidden">
-                          {order.buyerInfo?.avatar_url ? (
-                            <img src={order.buyerInfo.avatar_url} className="w-full h-full object-cover" alt="avatar" />
+                          {donHang.buyerInfo?.avatar_url ? (
+                            <img src={donHang.buyerInfo.avatar_url} className="w-full h-full object-cover" alt="avatar" />
                           ) : (
-                            layChuCaiDau(order.buyerInfo?.full_name)
+                            layChuCaiDau(donHang.buyerInfo?.full_name)
                           )}
                         </div>
                         <div className="flex flex-col">
-                          <p className="text-sm font-bold text-slate-900">{order.buyerInfo?.full_name || 'Khách vãng lai'}</p>
-                          <p className="text-xs text-slate-400">{order.phone}</p>
+                          <p className="text-sm font-bold text-slate-900">{donHang.buyerInfo?.full_name || 'Khách vãng lai'}</p>
+                          <p className="text-xs text-slate-400">{donHang.phone}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-6">
                       <div className="flex items-center gap-2">
-                        {order.payment_method === 'vnpay' ? (
+                        {donHang.payment_method === 'vnpay' ? (
                           <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-black uppercase tracking-wider border border-blue-100">
                             <CreditCard className="w-3 h-3" />
                             VNPay
@@ -238,22 +238,22 @@ export const AdminOrdersTab = ({
                       </div>
                     </td>
                     <td className="px-6 py-6">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${layKieuTrangThai(order.status)}`}>
-                        {layNhanTrangThai(order.status)}
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${layKieuTrangThai(donHang.status)}`}>
+                        {layNhanTrangThai(donHang.status)}
                       </span>
                     </td>
                     <td className="px-6 py-6">
                       <p className="text-sm font-black text-slate-900">
-                        {order.total_amount.toLocaleString('vi-VN')}đ
+                        {donHang.total_amount.toLocaleString('vi-VN')}đ
                       </p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">{order.items?.length || 0} sản phẩm</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">{donHang.items?.length || 0} sản phẩm</p>
                     </td>
                     <td className="px-6 py-6 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {order.status === 'pending' && (
+                        {donHang.status === 'pending' && (
                           <button 
-                            onClick={() => xuLyCapNhatTrangThaiDonHang(order.id, 'remind')}
-                            disabled={dangTaiThaoTac === order.id}
+                            onClick={() => xuLyCapNhatTrangThaiDonHang(donHang.id, 'remind')}
+                            disabled={dangTaiThaoTac === donHang.id}
                             className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 rounded-lg text-xs font-bold transition-all"
                             title="Gửi thông báo nhắc nhở người bán xử lý đơn"
                           >
@@ -262,7 +262,7 @@ export const AdminOrdersTab = ({
                           </button>
                         )}
                         <button 
-                          onClick={() => xuLyCapNhatChiTietDonHang(order)}
+                          onClick={() => xuLyCapNhatChiTietDonHang(donHang)}
                           className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
                           title="Xem chi tiết đơn hàng"
                         >

@@ -25,6 +25,7 @@ import { AdminDashboardTab } from '../components/admin/AdminDashboardTab';
 import { AdminListingsTab } from '../components/admin/AdminListingsTab';
 import { AdminUsersTab } from '../components/admin/AdminUsersTab';
 import { AdminOrdersTab } from '../components/admin/AdminOrdersTab';
+import { AdminContractsTab } from '../components/admin/AdminContractsTab';
 
 interface AdminPageProps {
   user: SupabaseUser | null;
@@ -76,13 +77,13 @@ interface ThongKeTongQuan {
   totalProducts: number;
 }
 
-type CheDoXemAdmin = 'dashboard' | 'listings' | 'users' | 'orders';
+type CheDoXemAdmin = 'dashboard' | 'listings' | 'users' | 'orders' | 'contracts';
 
 export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
   const layCheDoXemBanDau = (): CheDoXemAdmin => {
     const params = new URLSearchParams(window.location.search);
     const urlView = params.get('view') as CheDoXemAdmin;
-    const validViews: CheDoXemAdmin[] = ['dashboard', 'listings', 'users', 'orders'];
+    const validViews: CheDoXemAdmin[] = ['dashboard', 'listings', 'users', 'orders', 'contracts'];
     
     if (urlView && validViews.includes(urlView)) return urlView;
     
@@ -108,6 +109,9 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
 
   // Trạng thái Đơn hàng
   const [danhSachDonHang, setDanhSachDonHang] = useState<any[]>([]);
+
+  // Trạng thái Hợp đồng
+  const [danhSachHopDong, setDanhSachHopDong] = useState<any[]>([]);
 
   // Trạng thái Chung
   const [dangTai, setDangTai] = useState(true);
@@ -172,7 +176,8 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
           taiDanhSachTinDang(),
           taiDanhSachSanPham(),
           taiDanhSachNguoiDung(),
-          taiDanhSachDonHang()
+          taiDanhSachDonHang(),
+          taiDanhSachHopDong()
         ]);
       } catch (error) {
         console.error('Lỗi khi tải dữ liệu admin:', error);
@@ -612,27 +617,27 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
   // ===================== LOGIC ĐƠN HÀNG =====================
   const taiDanhSachDonHang = async () => {
     try {
-      const { data: ordersData, error: ordersError } = await supabase
+      const { data: duLieuDonHang, error: loiDonHang } = await supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (ordersError) throw ordersError;
+      if (loiDonHang) throw loiDonHang;
 
-      if (ordersData && ordersData.length > 0) {
-        const userIds = [...new Set(ordersData.map(o => o.user_id).filter(id => id))];
-        let profilesMap = new Map();
+      if (duLieuDonHang && duLieuDonHang.length > 0) {
+        const danhSachIdNguoiMua = [...new Set(duLieuDonHang.map(donHang => donHang.user_id).filter(id => id))];
+        let banDoHoSo = new Map();
 
-        if (userIds.length > 0) {
-          const { data: profilesData } = await supabase.from('profiles').select('id, full_name, avatar_url').in('id', userIds);
-          profilesData?.forEach(p => profilesMap.set(p.id, p));
+        if (danhSachIdNguoiMua.length > 0) {
+          const { data: duLieuHoSo } = await supabase.from('profiles').select('id, full_name, avatar_url').in('id', danhSachIdNguoiMua);
+          duLieuHoSo?.forEach(hoSo => banDoHoSo.set(hoSo.id, hoSo));
         }
 
-        const mergedOrders = ordersData.map(o => ({
-          ...o,
-          buyerInfo: profilesMap.get(o.user_id)
+        const danhSachDonHangChiTiet = duLieuDonHang.map(donHang => ({
+          ...donHang,
+          buyerInfo: banDoHoSo.get(donHang.user_id)
         }));
-        setDanhSachDonHang(mergedOrders);
+        setDanhSachDonHang(danhSachDonHangChiTiet);
       } else {
         setDanhSachDonHang([]);
       }
@@ -641,35 +646,49 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
     }
   };
 
-  const xuLyCapNhatTrangThaiDonHang = async (id: string, action: string) => {
-    if (action !== 'remind') return;
+  const taiDanhSachHopDong = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('contracts')
+        .select('*, profiles!contracts_tenant_id_fkey(full_name, avatar_url, phone, emergency_contact_name, emergency_contact_phone), rooms(title)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setDanhSachHopDong(data || []);
+    } catch (err) {
+      console.error('Lỗi tải danh sách hợp đồng:', err);
+    }
+  };
+
+  const xuLyCapNhatTrangThaiDonHang = async (id: string, hanhDong: string) => {
+    if (hanhDong !== 'remind') return;
     
     try {
       setDangTaiThaoTac(id);
-      const order = danhSachDonHang.find(o => o.id === id);
-      if (!order) throw new Error("Không tìm thấy đơn hàng.");
+      const donHang = danhSachDonHang.find(o => o.id === id);
+      if (!donHang) throw new Error("Không tìm thấy đơn hàng.");
 
       // Lấy danh sách tất cả Seller (owner_id) trong đơn hàng
-      const sellerIds = [...new Set(order.items.map((item: any) => item.owner_id).filter((id: string) => id))];
+      const danhSachIdNguoiBan = [...new Set(donHang.items.map((sanPham: any) => sanPham.owner_id).filter((id: string) => id))];
       
-      if (sellerIds.length === 0) {
+      if (danhSachIdNguoiBan.length === 0) {
         showToast('Không xác định được người bán để nhắc nhở.', 'warning');
         return;
       }
 
       // Gửi thông báo cho từng người bán
-      const notifications = sellerIds.map(sellerId => ({
-        receiver_id: sellerId,
+      const danhSachThongBao = danhSachIdNguoiBan.map(idNguoiBan => ({
+        receiver_id: idNguoiBan,
         type: 'warning',
         title: 'Nhắc nhở xử lý đơn hàng',
         message: `Admin nhắc nhở bạn có đơn hàng #${id.substring(0,8)} đang chờ xác nhận. Vui lòng kiểm tra và xử lý gấp.`,
         action_url: `/landlord/orders`
       }));
 
-      const { error } = await supabase.from('notifications').insert(notifications);
+      const { error } = await supabase.from('notifications').insert(danhSachThongBao);
       if (error) throw error;
       
-      showToast(`Đã gửi nhắc nhở tới ${sellerIds.length} người bán!`, 'success');
+      showToast(`Đã gửi nhắc nhở tới ${danhSachIdNguoiBan.length} người bán!`, 'success');
     } catch (error: any) {
       console.error('Lỗi khi gửi nhắc nhở:', error);
       showToast('Lỗi khi gửi thông báo nhắc nhở.', 'error');
@@ -752,6 +771,13 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
                 <ShoppingCart className="w-5 h-5" />
                 <span>Quản lý Đơn hàng</span>
               </button>
+              <button 
+                onClick={() => setCheDoXemHienTai('contracts')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${cheDoXemHienTai === 'contracts' ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+              >
+                <FileText className="w-5 h-5" />
+                <span>Quản lý Hợp đồng</span>
+              </button>
             </nav>
           </div>
         </aside>
@@ -820,6 +846,10 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
                 dinhDangNgay={dinhDangNgay}
                 layChuCaiDau={layChuCaiDau}
               />
+            )}
+
+            {cheDoXemHienTai === 'contracts' && (
+              <AdminContractsTab duLieuHopDong={danhSachHopDong} />
             )}
         </main>
       </div>
