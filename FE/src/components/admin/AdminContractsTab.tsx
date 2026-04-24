@@ -1,180 +1,258 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
-import {
-  Plus, CheckCircle, AlertCircle, FileClock, Filter, Download,
-  ChevronLeft, ChevronRight, MoreVertical
+import { 
+  FileSignature, 
+  Calendar, 
+  User, 
+  Home, 
+  DollarSign, 
+  FileText, 
+  ExternalLink,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Search,
+  Loader2
 } from 'lucide-react';
 
-interface PropsTabHopDong {
-  duLieuHopDong: any[];
+interface HopDong {
+  id: string;
+  room_id: string;
+  tenant_id: string;
+  owner_id: string;
+  start_date: string;
+  end_date: string;
+  tienThueHangThang?: number;
+  deposit: number;
+  status: 'active' | 'terminated' | 'expired';
+  contract_url?: string;
+  thongTinPhong?: { title: string };
+  thongTinNguoiThue?: { full_name: string; avatar_url: string };
+  thongTinChuTro?: { full_name: string; avatar_url: string };
 }
 
-export const AdminContractsTab = ({ duLieuHopDong }: PropsTabHopDong) => {
-  const [boLocHopDong, setBoLocHopDong] = useState('all');
+interface PropsAdminContractsTab {
+  danhSachHopDong: HopDong[];
+  dangTai: boolean;
+  dinhDangNgay: (date: string) => string;
+  layChuCaiDau: (name?: string) => string;
+}
 
-  const danhSachHopDongDinhDang = duLieuHopDong.map(c => ({
-    id: c.id,
-    nguoiThue: c.profiles?.full_name || 'N/A',
-    chuCaiDau: (c.profiles?.full_name || 'NA').split(' ').map((n: any) => n[0]).join('').toUpperCase().slice(0, 2),
-    phong: c.rooms?.title || 'N/A',
-    thoiGian: `${new Date(c.start_date).toLocaleDateString('vi-VN')} - ${new Date(c.end_date).toLocaleDateString('vi-VN')}`,
-    tienCoc: `${Number(c.deposit).toLocaleString()}đ`,
-    status: c.status,
-    nhanTrangThai: c.status === 'active' ? 'Đang hiệu lực' : c.status === 'pending' ? 'Chờ ký' : c.status === 'expired' ? 'Đã hết hạn' : 'Đã chấm dứt',
-    mauTrangThai: c.status === 'active' ? 'bg-green-100 text-green-700' : c.status === 'pending' ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-600',
-    hoSo: c.profiles
-  }));
+export const AdminContractsTab = ({ 
+  danhSachHopDong, dangTai, dinhDangNgay, layChuCaiDau 
+}: PropsAdminContractsTab) => {
 
-  const danhSachHopDongDaLoc = boLocHopDong === 'all' ? danhSachHopDongDinhDang : danhSachHopDongDinhDang.filter(c => c.status === boLocHopDong);
+  const layTrangThai = (status: string) => {
+    switch (status) {
+      case 'active':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-600 border border-emerald-200">
+            <CheckCircle className="w-3 h-3" />
+            Đang hiệu lực
+          </span>
+        );
+      case 'expired':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-600 border border-amber-200">
+            <AlertCircle className="w-3 h-3" />
+            Đã hết hạn
+          </span>
+        );
+      case 'terminated':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200">
+            <FileText className="w-3 h-3" />
+            Đã thanh lý
+          </span>
+        );
+      default:
+        return status;
+    }
+  };
+
+  const [tabHienTai, setTabHienTai] = React.useState('all');
+
+  const thongKe = {
+    tongSo: danhSachHopDong.length,
+    dangHieuLuc: danhSachHopDong.filter(c => c.status === 'active').length,
+    daHetHan: danhSachHopDong.filter(c => c.status === 'expired').length,
+    daThanhLy: danhSachHopDong.filter(c => c.status === 'terminated').length
+  };
+
+  const danhSachHopDongDaLoc = danhSachHopDong.filter(c => {
+    if (tabHienTai === 'all') return true;
+    return c.status === tabHienTai;
+  });
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="flex flex-col gap-8"
-    >
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col w-full h-full">
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-2 font-display">Quản lý Hợp đồng</h2>
-          <p className="text-slate-500 font-medium">Xem và quản lý tất cả các hợp đồng thuê phòng của các chủ trọ.</p>
+          <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <FileSignature className="text-primary w-8 h-8" />
+            Quản lý Hợp đồng
+          </h2>
+          <p className="text-slate-500 mt-1">Giám sát các cam kết thuê phòng và giao dịch đặt cọc.</p>
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          { label: 'Đang hiệu lực', value: duLieuHopDong.filter(c => c.status === 'active').length.toString(), sub: 'Số lượng hợp đồng', icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100' },
-          { label: 'Chờ ký', value: duLieuHopDong.filter(c => c.status === 'pending').length.toString(), sub: 'Cần sự xác nhận', icon: FileClock, color: 'text-orange-600', bg: 'bg-orange-100' },
-          { label: 'Sắp hết hạn', value: duLieuHopDong.filter(c => {
-            const endDate = new Date(c.end_date);
-            const today = new Date();
-            const diffTime = endDate.getTime() - today.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return diffDays > 0 && diffDays <= 30;
-          }).length.toString(), sub: 'Dưới 30 ngày', icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-100' },
-        ].map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-slate-500 text-xs font-black uppercase tracking-widest">{stat.label}</span>
-              <div className={`${stat.bg} ${stat.color} p-2 rounded-xl`}>
-                <stat.icon className="w-5 h-5" />
-              </div>
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 shrink-0">
+        <div className={`bg-white p-6 rounded-xl border flex items-center gap-4 shadow-sm cursor-pointer hover:shadow-md transition-all ${tabHienTai === 'all' ? 'border-primary ring-1 ring-primary' : 'border-slate-200'}`}
+             onClick={() => setTabHienTai('all')}>
+          <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
+            <FileSignature className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-slate-500 font-medium whitespace-nowrap uppercase tracking-tighter">Tổng hợp đồng</p>
+            <p className="text-2xl font-black text-slate-900">{dangTai ? '-' : thongKe.tongSo}</p>
+          </div>
+        </div>
+        
+        <div className={`bg-white p-6 rounded-xl border flex items-center gap-4 shadow-sm cursor-pointer hover:shadow-md transition-all ${tabHienTai === 'active' ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-slate-200'}`}
+             onClick={() => setTabHienTai('active')}>
+          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
+            <CheckCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-slate-500 font-medium whitespace-nowrap uppercase tracking-tighter">Đang hiệu lực</p>
+            <p className="text-2xl font-black text-slate-900">{dangTai ? '-' : thongKe.dangHieuLuc}</p>
+          </div>
+        </div>
+
+        <div className={`bg-white p-6 rounded-xl border flex items-center gap-4 shadow-sm cursor-pointer hover:shadow-md transition-all ${tabHienTai === 'expired' ? 'border-amber-500 ring-1 ring-amber-500' : 'border-slate-200'}`}
+             onClick={() => setTabHienTai('expired')}>
+          <div className="p-3 bg-amber-100 text-amber-600 rounded-lg">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-slate-500 font-medium whitespace-nowrap uppercase tracking-tighter">Đã hết hạn</p>
+            <p className="text-2xl font-black text-slate-900">{dangTai ? '-' : thongKe.daHetHan}</p>
+          </div>
+        </div>
+
+        <div className={`bg-white p-6 rounded-xl border flex items-center gap-4 shadow-sm cursor-pointer hover:shadow-md transition-all ${tabHienTai === 'terminated' ? 'border-slate-500 ring-1 ring-slate-500' : 'border-slate-200'}`}
+             onClick={() => setTabHienTai('terminated')}>
+          <div className="p-3 bg-slate-100 text-slate-600 rounded-lg">
+            <FileText className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-slate-500 font-medium whitespace-nowrap uppercase tracking-tighter">Đã thanh lý</p>
+            <p className="text-2xl font-black text-slate-900">{dangTai ? '-' : thongKe.daThanhLy}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">
+        <div className="flex border-b border-slate-200 px-6 shrink-0 bg-slate-50/50">
+          {['all', 'active', 'expired', 'terminated'].map((tab) => (
+            <button 
+              key={tab}
+              onClick={() => setTabHienTai(tab)}
+              className={`py-4 px-6 border-b-2 font-black text-sm whitespace-nowrap uppercase transition-all ${
+                tabHienTai === tab 
+                  ? 'border-primary text-primary' 
+                  : 'border-transparent text-slate-500 hover:text-slate-700 font-bold'
+              }`}
+            >
+              {tab === 'all' ? 'Tất cả' : tab === 'active' ? 'Đang hiệu lực' : tab === 'expired' ? 'Đã hết hạn' : 'Đã thanh lý'}
+            </button>
+          ))}
+        </div>
+
+        <div className="overflow-auto flex-1">
+          {dangTai ? (
+            <div className="p-20 flex flex-col items-center justify-center">
+              <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+              <p className="text-slate-500 font-black uppercase text-xs">Đang tải danh sách...</p>
             </div>
-            <div className="text-3xl font-black text-slate-900 font-display">{stat.value}</div>
-            <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-tighter">{stat.sub}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters & Table Section */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-wrap items-center gap-4">
-          <span className="text-sm font-black text-slate-400 uppercase tracking-widest">Bộ lọc:</span>
-          <div className="flex gap-2">
-            {[
-              { id: 'all', label: 'Tất cả' },
-              { id: 'active', label: 'Đang hiệu lực' },
-              { id: 'pending', label: 'Chờ ký' },
-              { id: 'expired', label: 'Đã hết hạn' },
-            ].map((filter) => (
-              <button 
-                key={filter.id}
-                onClick={() => setBoLocHopDong(filter.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                  boLocHopDong === filter.id 
-                    ? 'bg-primary text-white shadow-md shadow-orange-100' 
-                    : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
-                }`}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <button className="p-2.5 border border-slate-200 rounded-xl text-slate-400 hover:text-primary hover:border-primary transition-all">
-              <Filter className="w-5 h-5" />
-            </button>
-            <button className="p-2.5 border border-slate-200 rounded-xl text-slate-400 hover:text-primary hover:border-primary transition-all">
-              <Download className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Khách thuê</th>
-                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Phòng</th>
-                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Thời gian</th>
-                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Tiền cọc</th>
-                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Người thân</th>
-                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Trạng thái</th>
-                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {danhSachHopDongDaLoc.map((contract) => (
-                <tr key={contract.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-xs">
-                        {contract.chuCaiDau}
-                      </div>
-                      <div className="text-sm font-bold text-slate-900">{contract.nguoiThue}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1.5 bg-slate-100 rounded-lg text-[10px] font-black text-slate-700 tracking-widest uppercase">
-                      {contract.phong}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm font-bold text-slate-500">
-                    {contract.thoiGian}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-black text-slate-900">
-                    {contract.tienCoc}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black text-slate-900">{contract.hoSo?.emergency_contact_phone || '---'}</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{contract.hoSo?.emergency_contact_name || 'Chưa cập nhật'}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${contract.mauTrangThai}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        contract.status === 'active' ? 'bg-green-500' : 
-                        contract.status === 'pending' ? 'bg-primary' : 'bg-slate-400'
-                      }`}></span>
-                      {contract.nhanTrangThai}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-slate-300 hover:text-primary transition-colors">
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
-                  </td>
+          ) : danhSachHopDongDaLoc.length === 0 ? (
+            <div className="p-20 text-center">
+              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                <FileSignature className="w-8 h-8 text-slate-300" />
+              </div>
+              <p className="text-slate-500 font-black uppercase text-xs">Không tìm thấy hợp đồng nào.</p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse min-w-[1000px]">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-200 sticky top-0 z-10 text-slate-500 text-xs font-black uppercase tracking-wider">
+                  <th className="px-6 py-4">Thông tin Hợp đồng</th>
+                  <th className="px-6 py-4">Bên cho thuê</th>
+                  <th className="px-6 py-4">Bên thuê</th>
+                  <th className="px-6 py-4">Giá thuê & Cọc</th>
+                  <th className="px-6 py-4">Trạng thái</th>
+                  <th className="px-4 py-4 text-right">Tài liệu</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination (Tạm thời fake để UI giống) */}
-        <div className="p-6 border-t border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-            Hiển thị 1-{danhSachHopDongDaLoc.length} trên tổng số {duLieuHopDong.length} hợp đồng
-          </span>
-          <div className="flex items-center gap-2">
-            <button className="p-2 border border-slate-200 rounded-xl text-slate-300 hover:bg-slate-50 disabled:opacity-50 transition-all" disabled>
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button className="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-xl font-black text-sm shadow-md shadow-orange-100">1</button>
-            <button className="p-2 border border-slate-200 rounded-xl text-slate-400 hover:bg-slate-50 transition-all" disabled>
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {danhSachHopDongDaLoc.map((contract) => (
+                  <tr key={contract.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-6">
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm font-black text-slate-900 line-clamp-1">{contract.thongTinPhong?.title || 'Phòng không xác định'}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase">
+                          <Calendar className="w-3 h-3" />
+                          {dinhDangNgay(contract.start_date).split(' ')[0]} - {dinhDangNgay(contract.end_date).split(' ')[0]}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-[10px] font-bold text-blue-600 overflow-hidden border border-blue-100">
+                          {contract.thongTinChuTro?.avatar_url ? (
+                            <img src={contract.thongTinChuTro.avatar_url} className="w-full h-full object-cover" alt="avatar" />
+                          ) : (
+                            layChuCaiDau(contract.thongTinChuTro?.full_name)
+                          )}
+                        </div>
+                        <p className="text-xs font-bold text-slate-700">{contract.thongTinChuTro?.full_name || 'N/A'}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-[10px] font-bold text-emerald-600 overflow-hidden border border-emerald-100">
+                          {contract.thongTinNguoiThue?.avatar_url ? (
+                            <img src={contract.thongTinNguoiThue.avatar_url} className="w-full h-full object-cover" alt="avatar" />
+                          ) : (
+                            layChuCaiDau(contract.thongTinNguoiThue?.full_name)
+                          )}
+                        </div>
+                        <p className="text-xs font-bold text-slate-700">{contract.thongTinNguoiThue?.full_name || 'N/A'}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex flex-col">
+                        <p className="text-sm font-black text-primary">{(contract.tienThueHangThang || 0).toLocaleString('vi-VN')} đ</p>
+                        <div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold italic">
+                          <DollarSign className="w-2.5 h-2.5" />
+                          Cọc: {(contract.deposit || 0).toLocaleString('vi-VN')} đ
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6">
+                      {layTrangThai(contract.status)}
+                    </td>
+                    <td className="px-6 py-6 text-right">
+                      {contract.contract_url ? (
+                        <a 
+                          href={contract.contract_url} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                        >
+                          Xem PDF
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-[10px] font-bold text-slate-300 italic">Chưa có bản số</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </motion.div>

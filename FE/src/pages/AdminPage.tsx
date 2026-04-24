@@ -648,13 +648,48 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
 
   const taiDanhSachHopDong = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: duLieuHopDongRaw, error: loiHopDong } = await supabase
         .from('contracts')
-        .select('*, profiles!contracts_tenant_id_fkey(full_name, avatar_url, phone, emergency_contact_name, emergency_contact_phone), rooms(title)')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setDanhSachHopDong(data || []);
+      if (loiHopDong) throw loiHopDong;
+
+      if (duLieuHopDongRaw && duLieuHopDongRaw.length > 0) {
+        // Thu thập các ID duy nhất
+        const danhSachIdPhong = [...new Set(duLieuHopDongRaw.map(c => c.room_id).filter(id => id))];
+        const danhSachIdNguoiDung = [...new Set([
+          ...duLieuHopDongRaw.map(c => c.tenant_id),
+          ...duLieuHopDongRaw.map(c => c.owner_id)
+        ].filter(id => id))];
+
+        let banDoPhong = new Map();
+        let banDoHoSo = new Map();
+
+        if (danhSachIdPhong.length > 0) {
+          const { data: danhSachPhong } = await supabase.from('rooms').select('id, title, price').in('id', danhSachIdPhong);
+          danhSachPhong?.forEach(r => banDoPhong.set(r.id, r));
+        }
+
+        if (danhSachIdNguoiDung.length > 0) {
+          const { data: danhSachHoSo } = await supabase.from('profiles').select('id, full_name, avatar_url').in('id', danhSachIdNguoiDung);
+          danhSachHoSo?.forEach(p => banDoHoSo.set(p.id, p));
+        }
+
+        const danhSachHopDongChiTiet = duLieuHopDongRaw.map(c => {
+          const phong = banDoPhong.get(c.room_id);
+          return {
+            ...c,
+            thongTinPhong: phong,
+            tienThueHangThang: phong?.price || 0,
+            thongTinNguoiThue: banDoHoSo.get(c.tenant_id),
+            thongTinChuTro: banDoHoSo.get(c.owner_id)
+          };
+        });
+        setDanhSachHopDong(danhSachHopDongChiTiet);
+      } else {
+        setDanhSachHopDong([]);
+      }
     } catch (err) {
       console.error('Lỗi tải danh sách hợp đồng:', err);
     }
@@ -849,7 +884,12 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
             )}
 
             {cheDoXemHienTai === 'contracts' && (
-              <AdminContractsTab duLieuHopDong={danhSachHopDong} />
+              <AdminContractsTab 
+                danhSachHopDong={danhSachHopDong} 
+                dangTai={dangTai} 
+                dinhDangNgay={dinhDangNgay} 
+                layChuCaiDau={layChuCaiDau} 
+              />
             )}
         </main>
       </div>
