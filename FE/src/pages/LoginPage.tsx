@@ -29,7 +29,7 @@ export const LoginPage = ({ onNavigate }: { onNavigate: (page: string) => void }
     try {
       const soDienThoaiDinhDang = soDienThoai.startsWith('0') ? `+84${soDienThoai.slice(1)}` : soDienThoai.startsWith('+') ? soDienThoai : `+84${soDienThoai}`;
 
-      const { error: loiHeThong } = await supabase.auth.signInWithPassword({
+      const { data: { user }, error: loiHeThong } = await supabase.auth.signInWithPassword({
         phone: soDienThoaiDinhDang,
         password: matKhau,
       });
@@ -43,7 +43,18 @@ export const LoginPage = ({ onNavigate }: { onNavigate: (page: string) => void }
         localStorage.removeItem('rememberedPhone');
       }
 
-      onNavigate('home');
+      // Kiểm tra role để chuyển hướng
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user?.id)
+        .single();
+
+      if (profile?.role === 'admin') {
+        onNavigate('admin');
+      } else {
+        onNavigate('home');
+      }
     } catch (err: any) {
       setLoi(err.message || 'Đã có lỗi xảy ra khi đăng nhập');
     } finally {

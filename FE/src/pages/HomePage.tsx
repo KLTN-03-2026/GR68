@@ -26,10 +26,12 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 export const HomePage = ({ 
   onNavigate, 
   user, 
+  role,
   onLogout 
 }: { 
   onNavigate: (page: string, params?: any) => void,
   user: SupabaseUser | null,
+  role: string | null,
   onLogout: () => void
 }) => {
   const [realListings, setRealListings] = useState<any[]>([]);
@@ -45,8 +47,12 @@ export const HomePage = ({
   const districts = ['Hải Châu', 'Thanh Khê', 'Sơn Trà', 'Ngũ Hành Sơn', 'Liên Chiểu', 'Cẩm Lệ', 'Hòa Vang'];
 
   useEffect(() => {
+    if (role === 'admin') {
+      onNavigate('admin');
+      return;
+    }
     fetchListings();
-  }, []);
+  }, [role]);
 
   const fetchListings = async () => {
     setLoading(true);

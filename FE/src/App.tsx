@@ -10,7 +10,7 @@ import { ManagePage } from './pages/ManagePage';
 import { SearchPage } from './pages/SearchPage';
 import { ContactPage } from './pages/ContactPage';
 import { TenantPage } from './pages/TenantPage';
-// import { AdminPage } from './pages/AdminPage';
+import { AdminPage } from './pages/AdminPage';
 import { ListingDetailPage } from './pages/ListingDetailPage';
 // import { PaymentResultPage } from './pages/PaymentResultPage';
 // import { StoreDetailPage } from './pages/StoreDetailPage';
@@ -89,20 +89,16 @@ const LegacyPageWrapper = ({ Component, requireAuth, allowedRoles }: { Component
 
   return (
     <motion.div
-       key={location.pathname}
-       initial={{ opacity: 0, x: 10 }}
-       animate={{ opacity: 1, x: 0 }}
-       exit={{ opacity: 0, x: -10 }}
-       transition={{ duration: 0.3 }}
-       className="min-h-screen"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.2 }}
     >
       <Component 
         onNavigate={handleNavigate} 
         user={user} 
-        onLogout={async () => {
-          await logout();
-          navigate('/', { replace: true });
-        }} 
+        role={role}
+        onLogout={logout} 
         params={params} 
         initialParams={params}
       />
@@ -148,11 +144,11 @@ export default function App() {
             path="/tenant" 
             element={<LegacyPageWrapper Component={TenantPage} requireAuth allowedRoles={['tenant', 'admin']} />} 
           />
-          {/*
           <Route 
             path="/admin" 
             element={<LegacyPageWrapper Component={AdminPage} requireAuth allowedRoles={['admin']} />} 
           />
+          {/*
           <Route 
             path="/my-store" 
             element={<LegacyPageWrapper Component={MyStorePage} requireAuth allowedRoles={['tenant', 'landlord', 'admin']} />} 
