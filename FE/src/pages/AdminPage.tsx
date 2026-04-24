@@ -13,7 +13,8 @@ import {
   XCircle,
   Edit,
   Eye,
-  Home
+  Home,
+  ShoppingCart
 } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Page } from '../components/layout/Header';
@@ -23,6 +24,7 @@ import { useToast } from '../context/ToastContext';
 import { AdminDashboardTab } from '../components/admin/AdminDashboardTab';
 import { AdminListingsTab } from '../components/admin/AdminListingsTab';
 import { AdminUsersTab } from '../components/admin/AdminUsersTab';
+import { AdminOrdersTab } from '../components/admin/AdminOrdersTab';
 
 interface AdminPageProps {
   user: SupabaseUser | null;
@@ -74,13 +76,13 @@ interface ThongKeTongQuan {
   totalProducts: number;
 }
 
-type CheDoXemAdmin = 'dashboard' | 'listings' | 'users';
+type CheDoXemAdmin = 'dashboard' | 'listings' | 'users' | 'orders';
 
 export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
   const layCheDoXemBanDau = (): CheDoXemAdmin => {
     const params = new URLSearchParams(window.location.search);
     const urlView = params.get('view') as CheDoXemAdmin;
-    const validViews: CheDoXemAdmin[] = ['dashboard', 'listings', 'users'];
+    const validViews: CheDoXemAdmin[] = ['dashboard', 'listings', 'users', 'orders'];
     
     if (urlView && validViews.includes(urlView)) return urlView;
     
@@ -103,6 +105,9 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
   // Trạng thái Người dùng
   const [danhSachNguoiDung, setDanhSachNguoiDung] = useState<Profile[]>([]);
   const [boLocNguoiDung, setBoLocNguoiDung] = useState<'all' | 'landlord' | 'tenant' | 'admin'>('all');
+
+  // Trạng thái Đơn hàng
+  const [danhSachDonHang, setDanhSachDonHang] = useState<any[]>([]);
 
   // Trạng thái Chung
   const [dangTai, setDangTai] = useState(true);
@@ -166,7 +171,8 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
           taiTongQuanThongKe(),
           taiDanhSachTinDang(),
           taiDanhSachSanPham(),
-          taiDanhSachNguoiDung()
+          taiDanhSachNguoiDung(),
+          taiDanhSachDonHang()
         ]);
       } catch (error) {
         console.error('Lỗi khi tải dữ liệu admin:', error);
@@ -603,6 +609,75 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
     });
   };
 
+  // ===================== LOGIC ĐƠN HÀNG =====================
+  const taiDanhSachDonHang = async () => {
+    try {
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (ordersError) throw ordersError;
+
+      if (ordersData && ordersData.length > 0) {
+        const userIds = [...new Set(ordersData.map(o => o.user_id).filter(id => id))];
+        let profilesMap = new Map();
+
+        if (userIds.length > 0) {
+          const { data: profilesData } = await supabase.from('profiles').select('id, full_name, avatar_url').in('id', userIds);
+          profilesData?.forEach(p => profilesMap.set(p.id, p));
+        }
+
+        const mergedOrders = ordersData.map(o => ({
+          ...o,
+          buyerInfo: profilesMap.get(o.user_id)
+        }));
+        setDanhSachDonHang(mergedOrders);
+      } else {
+        setDanhSachDonHang([]);
+      }
+    } catch (error) {
+      console.error('Lỗi tải danh sách đơn hàng:', error);
+    }
+  };
+
+  const xuLyCapNhatTrangThaiDonHang = async (id: string, action: string) => {
+    if (action !== 'remind') return;
+    
+    try {
+      setDangTaiThaoTac(id);
+      const order = danhSachDonHang.find(o => o.id === id);
+      if (!order) throw new Error("Không tìm thấy đơn hàng.");
+
+      // Lấy danh sách tất cả Seller (owner_id) trong đơn hàng
+      const sellerIds = [...new Set(order.items.map((item: any) => item.owner_id).filter((id: string) => id))];
+      
+      if (sellerIds.length === 0) {
+        showToast('Không xác định được người bán để nhắc nhở.', 'warning');
+        return;
+      }
+
+      // Gửi thông báo cho từng người bán
+      const notifications = sellerIds.map(sellerId => ({
+        receiver_id: sellerId,
+        type: 'warning',
+        title: 'Nhắc nhở xử lý đơn hàng',
+        message: `Admin nhắc nhở bạn có đơn hàng #${id.substring(0,8)} đang chờ xác nhận. Vui lòng kiểm tra và xử lý gấp.`,
+        action_url: `/landlord/orders`
+      }));
+
+      const { error } = await supabase.from('notifications').insert(notifications);
+      if (error) throw error;
+      
+      showToast(`Đã gửi nhắc nhở tới ${sellerIds.length} người bán!`, 'success');
+    } catch (error: any) {
+      console.error('Lỗi khi gửi nhắc nhở:', error);
+      showToast('Lỗi khi gửi thông báo nhắc nhở.', 'error');
+    } finally {
+      setDangTaiThaoTac(null);
+    }
+  };
+
   // ===================== TRÌNH TRỢ GIÚP =====================
   const layChuCaiDau = (name?: string) => {
     if (!name) return 'U';
@@ -670,6 +745,13 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
                 <Users className="w-5 h-5" />
                 <span>Quản lý người dùng</span>
               </button>
+              <button 
+                onClick={() => setCheDoXemHienTai('orders')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${cheDoXemHienTai === 'orders' ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+              >
+                <ShoppingCart className="w-5 h-5" />
+                <span>Quản lý Đơn hàng</span>
+              </button>
             </nav>
           </div>
         </aside>
@@ -719,6 +801,26 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
               dangTai={dangTai} 
             />
           )}
+
+            {cheDoXemHienTai === 'orders' && (
+              <AdminOrdersTab 
+                danhSachDonHang={danhSachDonHang}
+                dangTai={dangTai}
+                dangTaiThaoTac={dangTaiThaoTac}
+                xuLyCapNhatTrangThaiDonHang={xuLyCapNhatTrangThaiDonHang}
+                xuLyCapNhatChiTietDonHang={(order) => {
+                  setModalXacNhan({
+                    isOpen: true,
+                    title: 'Chi tiết đơn hàng',
+                    message: `Đơn hàng #${order.id.substring(0,8)} gồm ${order.items?.length || 0} món. Địa chỉ: ${order.address || 'Không xác định'}.`,
+                    type: 'info',
+                    onConfirm: () => {}
+                  });
+                }}
+                dinhDangNgay={dinhDangNgay}
+                layChuCaiDau={layChuCaiDau}
+              />
+            )}
         </main>
       </div>
 
