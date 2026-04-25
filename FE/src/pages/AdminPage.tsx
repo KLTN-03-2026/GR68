@@ -26,6 +26,7 @@ import { AdminListingsTab } from '../components/admin/AdminListingsTab';
 import { AdminUsersTab } from '../components/admin/AdminUsersTab';
 import { AdminOrdersTab } from '../components/admin/AdminOrdersTab';
 import { AdminContractsTab } from '../components/admin/AdminContractsTab';
+import { AdminReportsTab } from '../components/admin/AdminReportsTab';
 
 interface AdminPageProps {
   user: SupabaseUser | null;
@@ -69,6 +70,18 @@ interface Product {
   ownerInfo?: Profile;
 }
 
+interface Report {
+  id: string;
+  reporter_id: string;
+  target_id: string;
+  target_type: 'listing' | 'user';
+  reason: string;
+  details?: string;
+  status: 'pending' | 'resolved';
+  created_at: string;
+  thongTinNguoiBaoCao?: Profile;
+}
+
 interface ThongKeTongQuan {
   totalListings: number;
   totalUsers: number;
@@ -77,13 +90,13 @@ interface ThongKeTongQuan {
   totalProducts: number;
 }
 
-type CheDoXemAdmin = 'dashboard' | 'listings' | 'users' | 'orders' | 'contracts';
+type CheDoXemAdmin = 'dashboard' | 'listings' | 'users' | 'reports' | 'orders' | 'contracts';
 
 export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
   const layCheDoXemBanDau = (): CheDoXemAdmin => {
     const params = new URLSearchParams(window.location.search);
     const urlView = params.get('view') as CheDoXemAdmin;
-    const validViews: CheDoXemAdmin[] = ['dashboard', 'listings', 'users', 'orders', 'contracts'];
+    const validViews: CheDoXemAdmin[] = ['dashboard', 'listings', 'users', 'reports', 'orders', 'contracts'];
     
     if (urlView && validViews.includes(urlView)) return urlView;
     
@@ -106,6 +119,10 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
   // Trạng thái Người dùng
   const [danhSachNguoiDung, setDanhSachNguoiDung] = useState<Profile[]>([]);
   const [boLocNguoiDung, setBoLocNguoiDung] = useState<'all' | 'landlord' | 'tenant' | 'admin'>('all');
+
+  // Trạng thái Báo cáo
+  const [danhSachBaoCao, setDanhSachBaoCao] = useState<Report[]>([]);
+  const [boLocBaoCao, setBoLocBaoCao] = useState<'all' | 'pending' | 'resolved'>('all');
 
   // Trạng thái Đơn hàng
   const [danhSachDonHang, setDanhSachDonHang] = useState<any[]>([]);
@@ -176,6 +193,7 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
           taiDanhSachTinDang(),
           taiDanhSachSanPham(),
           taiDanhSachNguoiDung(),
+          taiDanhSachBaoCao(),
           taiDanhSachDonHang(),
           taiDanhSachHopDong()
         ]);
@@ -614,6 +632,75 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
     });
   };
 
+  // ===================== LOGIC BÁO CÁO =====================
+  const taiDanhSachBaoCao = async () => {
+    try {
+      const { data: duLieuBaoCao, error: loiBaoCao } = await supabase
+        .from('reports')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (loiBaoCao) throw loiBaoCao;
+
+      if (duLieuBaoCao && duLieuBaoCao.length > 0) {
+        const dsNguoiBaoCao = [...new Set(duLieuBaoCao.map(r => r.reporter_id).filter(id => id))];
+        let mapHoSo = new Map();
+
+        if (dsNguoiBaoCao.length > 0) {
+          const { data: duLieuHoSo } = await supabase.from('profiles').select('id, full_name, avatar_url').in('id', dsNguoiBaoCao);
+          duLieuHoSo?.forEach(p => mapHoSo.set(p.id, p));
+        }
+
+        const baoCaoChiTiet = duLieuBaoCao.map(baoCao => ({
+          ...baoCao,
+          thongTinNguoiBaoCao: mapHoSo.get(baoCao.reporter_id)
+        }));
+        setDanhSachBaoCao(baoCaoChiTiet);
+      } else {
+        setDanhSachBaoCao([]);
+      }
+    } catch (error) {
+      console.error('Lỗi lấy báo cáo:', error);
+    }
+  };
+
+  const xuLyCapNhatTrangThaiBaoCao = async (reportId: string, newStatus: 'resolved') => {
+    try {
+      setDangTaiThaoTac(reportId);
+      const { error } = await supabase.from('reports').update({ status: newStatus }).eq('id', reportId);
+      if (error) throw error;
+      setDanhSachBaoCao(prev => prev.map(r => r.id === reportId ? { ...r, status: newStatus } : r));
+    } catch (error) {
+      showToast('Không thể cập nhật trạng thái báo cáo.', 'error');
+    } finally {
+      setDangTaiThaoTac(null);
+    }
+  };
+
+  const xuLyXoaBaoCao = async (reportId: string) => {
+    setModalXacNhan({
+      isOpen: true,
+      title: 'Xóa báo cáo',
+      message: 'Xin cân nhắc: Xóa vĩnh viễn báo cáo này khỏi hệ thống?',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          setDangTaiThaoTac(reportId);
+          const { error } = await supabase.from('reports').delete().eq('id', reportId);
+          if (error) throw error;
+          setDanhSachBaoCao(prev => prev.filter(r => r.id !== reportId));
+          showToast('Đã xóa báo cáo.', 'success');
+        } catch (error: any) {
+          showToast('Lỗi khi xóa báo cáo.', 'error');
+        } finally {
+          setDangTaiThaoTac(null);
+        }
+      }
+    });
+  };
+
+  const baoCaoHienTai = danhSachBaoCao.filter(r => boLocBaoCao === 'all' || r.status === boLocBaoCao);
+
   // ===================== LOGIC ĐƠN HÀNG =====================
   const taiDanhSachDonHang = async () => {
     try {
@@ -800,6 +887,13 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
                 <span>Quản lý người dùng</span>
               </button>
               <button 
+                onClick={() => setCheDoXemHienTai('reports')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${cheDoXemHienTai === 'reports' ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+              >
+                <AlertCircle className="w-5 h-5" />
+                <span>Báo cáo và phản hồi</span>
+              </button>
+              <button 
                 onClick={() => setCheDoXemHienTai('orders')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${cheDoXemHienTai === 'orders' ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
               >
@@ -862,6 +956,22 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
               dangTai={dangTai} 
             />
           )}
+
+            {cheDoXemHienTai === 'reports' && (
+              <AdminReportsTab 
+                boLocBaoCao={boLocBaoCao} 
+                datBoLocBaoCao={setBoLocBaoCao}
+                danhSachBaoCaoHienTai={baoCaoHienTai} 
+                dangTai={dangTai} 
+                dangTaiThaoTac={dangTaiThaoTac}
+                xuLyCapNhatTrangThaiBaoCao={xuLyCapNhatTrangThaiBaoCao} 
+                xuLyXoaBaoCao={xuLyXoaBaoCao}
+                datIdTinDangNoiBat={setIdTinDangNoiBat} 
+                datCheDoXemHienTai={setCheDoXemHienTai}
+                layChuCaiDau={layChuCaiDau} 
+                dinhDangNgay={dinhDangNgay}
+              />
+            )}
 
             {cheDoXemHienTai === 'orders' && (
               <AdminOrdersTab 
