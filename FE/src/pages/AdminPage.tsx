@@ -14,7 +14,8 @@ import {
   Edit,
   Eye,
   Home,
-  ShoppingCart
+  ShoppingCart,
+  ShieldAlert
 } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Page } from '../components/layout/Header';
@@ -27,6 +28,7 @@ import { AdminUsersTab } from '../components/admin/AdminUsersTab';
 import { AdminOrdersTab } from '../components/admin/AdminOrdersTab';
 import { AdminContractsTab } from '../components/admin/AdminContractsTab';
 import { AdminReportsTab } from '../components/admin/AdminReportsTab';
+import { TabRuiRoAdmin } from '../components/admin/AdminRiskTab';
 
 interface AdminPageProps {
   user: SupabaseUser | null;
@@ -90,13 +92,27 @@ interface ThongKeTongQuan {
   totalProducts: number;
 }
 
-type CheDoXemAdmin = 'dashboard' | 'listings' | 'users' | 'reports' | 'orders' | 'contracts';
+interface CanhBaoRuiRo {
+  id: string;
+  room_id: string;
+  risk_type: 'dien' | 'nuoc';
+  risk_level: 'thap' | 'trung_binh' | 'cao';
+  details: string;
+  detected_at: string;
+  thongTinPhong?: {
+    id: string;
+    title: string;
+    location?: string;
+  };
+}
+
+type CheDoXemAdmin = 'dashboard' | 'listings' | 'users' | 'reports' | 'orders' | 'contracts' | 'risks';
 
 export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
   const layCheDoXemBanDau = (): CheDoXemAdmin => {
     const params = new URLSearchParams(window.location.search);
     const urlView = params.get('view') as CheDoXemAdmin;
-    const validViews: CheDoXemAdmin[] = ['dashboard', 'listings', 'users', 'reports', 'orders', 'contracts'];
+    const validViews: CheDoXemAdmin[] = ['dashboard', 'listings', 'users', 'reports', 'orders', 'contracts', 'risks'];
     
     if (urlView && validViews.includes(urlView)) return urlView;
     
@@ -123,6 +139,9 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
   // Trạng thái Báo cáo
   const [danhSachBaoCao, setDanhSachBaoCao] = useState<Report[]>([]);
   const [boLocBaoCao, setBoLocBaoCao] = useState<'all' | 'pending' | 'resolved'>('all');
+
+  // Trạng thái Rủi ro AI
+  const [danhSachCanhBaoRuiRo, setDanhSachCanhBaoRuiRo] = useState<CanhBaoRuiRo[]>([]);
 
   // Trạng thái Đơn hàng
   const [danhSachDonHang, setDanhSachDonHang] = useState<any[]>([]);
@@ -195,7 +214,8 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
           taiDanhSachNguoiDung(),
           taiDanhSachBaoCao(),
           taiDanhSachDonHang(),
-          taiDanhSachHopDong()
+          taiDanhSachHopDong(),
+          taiDanhSachCanhBaoRuiRo()
         ]);
       } catch (error) {
         console.error('Lỗi khi tải dữ liệu admin:', error);
@@ -701,6 +721,39 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
 
   const baoCaoHienTai = danhSachBaoCao.filter(r => boLocBaoCao === 'all' || r.status === boLocBaoCao);
 
+  // ===================== LOGIC RỦI RO AI =====================
+  const taiDanhSachCanhBaoRuiRo = async () => {
+    try {
+      const { data: duLieuRuiRo, error: loiRuiRo } = await supabase
+        .from('risk_alerts')
+        .select('*')
+        .order('detected_at', { ascending: false });
+
+      if (loiRuiRo) throw loiRuiRo;
+
+      if (duLieuRuiRo && duLieuRuiRo.length > 0) {
+        const danhSachIdPhong = [...new Set(duLieuRuiRo.map(r => r.room_id))];
+        const { data: duLieuPhong } = await supabase
+          .from('rooms')
+          .select('id, title')
+          .in('id', danhSachIdPhong);
+        
+        const banDoPhong = new Map();
+        duLieuPhong?.forEach(r => banDoPhong.set(r.id, r));
+
+        const ruiRoChiTiet = duLieuRuiRo.map(r => ({
+          ...r,
+          thongTinPhong: banDoPhong.get(r.room_id)
+        }));
+        setDanhSachCanhBaoRuiRo(ruiRoChiTiet);
+      } else {
+        setDanhSachCanhBaoRuiRo([]);
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải cảnh báo rủi ro:', error);
+    }
+  };
+
   // ===================== LOGIC ĐƠN HÀNG =====================
   const taiDanhSachDonHang = async () => {
     try {
@@ -894,6 +947,13 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
                 <span>Báo cáo và phản hồi</span>
               </button>
               <button 
+                onClick={() => setCheDoXemHienTai('risks')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${cheDoXemHienTai === 'risks' ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+              >
+                <ShieldAlert className="w-5 h-5" />
+                <span>Cảnh báo Rủi ro AI</span>
+              </button>
+              <button 
                 onClick={() => setCheDoXemHienTai('orders')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${cheDoXemHienTai === 'orders' ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
               >
@@ -970,6 +1030,17 @@ export const AdminPage = ({ user, onLogout, onNavigate }: AdminPageProps) => {
                 datCheDoXemHienTai={setCheDoXemHienTai}
                 layChuCaiDau={layChuCaiDau} 
                 dinhDangNgay={dinhDangNgay}
+              />
+            )}
+
+            {cheDoXemHienTai === 'risks' && (
+              <TabRuiRoAdmin 
+                danhSachRuiRo={danhSachCanhBaoRuiRo} 
+                dangTai={dangTai} 
+                xuLyChuyenHuongDenPhong={(roomId) => {
+                  console.log('Navigate to room:', roomId);
+                  showToast('Chức năng xem chi tiết phòng đang được kết nối...', 'info');
+                }} 
               />
             )}
 
