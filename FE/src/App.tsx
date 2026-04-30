@@ -6,16 +6,16 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ManagePage } from './pages/ManagePage';
-// import { StorePage } from './pages/StorePage';
+import { StorePage } from './pages/StorePage';
 import { SearchPage } from './pages/SearchPage';
 import { ContactPage } from './pages/ContactPage';
 import { TenantPage } from './pages/TenantPage';
 import { AdminPage } from './pages/AdminPage';
 import { ListingDetailPage } from './pages/ListingDetailPage';
-// import { PaymentResultPage } from './pages/PaymentResultPage';
-// import { StoreDetailPage } from './pages/StoreDetailPage';
-// import { CheckoutPage } from './pages/CheckoutPage';
-// import { MyStorePage } from './pages/MyStorePage';
+import { PaymentResultPage } from './pages/PaymentResultPage';
+import { StoreDetailPage } from './pages/StoreDetailPage';
+import { CheckoutPage } from './pages/CheckoutPage';
+import { MyStorePage } from './pages/MyStorePage';
 
 import { MainLayout } from './components/layout/MainLayout';
 import { AuthLayout } from './components/layout/AuthLayout';
@@ -125,15 +125,11 @@ export default function App() {
           <Route path="/listing-detail" element={<LegacyPageWrapper Component={ListingDetailPage} />} />
           <Route path="/search" element={<LegacyPageWrapper Component={SearchPage} />} />
           <Route path="/contact" element={<LegacyPageWrapper Component={ContactPage} />} />
-          {/* 
+          
           <Route path="/store" element={<LegacyPageWrapper Component={StorePage} />} />
-          <Route path="/search" element={<LegacyPageWrapper Component={SearchPage} />} />
-          <Route path="/contact" element={<LegacyPageWrapper Component={ContactPage} />} />
-          <Route path="/listing-detail" element={<LegacyPageWrapper Component={ListingDetailPage} />} />
           <Route path="/store-detail" element={<LegacyPageWrapper Component={StoreDetailPage} />} />
           <Route path="/checkout" element={<LegacyPageWrapper Component={CheckoutPage} />} />
           <Route path="/payment-result" element={<LegacyPageWrapper Component={PaymentResultPage} />} />
-          */}
           
           {/* Protected Routes */}
           <Route 
@@ -148,12 +144,12 @@ export default function App() {
             path="/admin" 
             element={<LegacyPageWrapper Component={AdminPage} requireAuth allowedRoles={['admin']} />} 
           />
-          {/*
+          
           <Route 
             path="/my-store" 
             element={<LegacyPageWrapper Component={MyStorePage} requireAuth allowedRoles={['tenant', 'landlord', 'admin']} />} 
           />
-          */}
+          
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
