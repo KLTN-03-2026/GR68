@@ -16,6 +16,7 @@ import { PaymentResultPage } from './pages/PaymentResultPage';
 import { StoreDetailPage } from './pages/StoreDetailPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { MyStorePage } from './pages/MyStorePage';
+import { AboutPage } from './pages/AboutPage';
 
 import { MainLayout } from './components/layout/MainLayout';
 import { AuthLayout } from './components/layout/AuthLayout';
@@ -122,6 +123,7 @@ export default function App() {
         {/* Routes with MainLayout (Has Header/Footer) */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<LegacyPageWrapper Component={HomePage} />} />
+          <Route path="/about" element={<LegacyPageWrapper Component={AboutPage} />} />
           <Route path="/listing-detail" element={<LegacyPageWrapper Component={ListingDetailPage} />} />
           <Route path="/search" element={<LegacyPageWrapper Component={SearchPage} />} />
           <Route path="/contact" element={<LegacyPageWrapper Component={ContactPage} />} />

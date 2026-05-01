@@ -1,6 +1,8 @@
 import React from 'react';
 import { Home, MapPin, Phone, Mail, Facebook, Instagram, Twitter } from 'lucide-react';
 
+import { Link } from 'react-router-dom';
+
 export const Footer = () => {
   return (
     <footer className="bg-white border-t border-slate-200 mt-auto pt-16 pb-8 w-full">
@@ -20,7 +22,7 @@ export const Footer = () => {
           <div>
             <h3 className="font-bold text-slate-900 mb-6 font-display">Liên kết nhanh</h3>
             <ul className="space-y-4 text-sm text-slate-500">
-              <li><a className="hover:text-primary transition-colors" href="#">Về chúng tôi</a></li>
+              <li><Link className="hover:text-primary transition-colors" to="/about">Về chúng tôi</Link></li>
               <li><a className="hover:text-primary transition-colors" href="#">Hướng dẫn đăng tin</a></li>
               <li><a className="hover:text-primary transition-colors" href="#">Bảng giá dịch vụ</a></li>
               <li><a className="hover:text-primary transition-colors" href="#">Liên hệ hỗ trợ</a></li>
