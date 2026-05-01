@@ -17,6 +17,7 @@ import { StoreDetailPage } from './pages/StoreDetailPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { MyStorePage } from './pages/MyStorePage';
 import { AboutPage } from './pages/AboutPage';
+import { GuidePage } from './pages/GuidePage';
 
 import { MainLayout } from './components/layout/MainLayout';
 import { AuthLayout } from './components/layout/AuthLayout';
@@ -127,6 +128,7 @@ export default function App() {
           <Route path="/listing-detail" element={<LegacyPageWrapper Component={ListingDetailPage} />} />
           <Route path="/search" element={<LegacyPageWrapper Component={SearchPage} />} />
           <Route path="/contact" element={<LegacyPageWrapper Component={ContactPage} />} />
+          <Route path="/guide" element={<LegacyPageWrapper Component={GuidePage} />} />
           
           <Route path="/store" element={<LegacyPageWrapper Component={StorePage} />} />
           <Route path="/store-detail" element={<LegacyPageWrapper Component={StoreDetailPage} />} />
