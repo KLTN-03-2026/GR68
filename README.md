@@ -10,32 +10,32 @@
 ## 📸 Giao diện ứng dụng
 
 ### 1. Trang chủ & Hệ thống tìm kiếm
-![Trang chủ](images/home.png)
+![Trang chủ](FE/images/home.png)
 
 ---
 
 ### 2. Chợ đồ cũ
-![Chợ đồ cũ](images/marketplace.png)
+![Chợ đồ cũ](FE/images/marketplace.png)
 
 ---
 
 ### 3. Liên hệ & Bản đồ tương tác
-![Liên hệ](images/contact.png)
+![Liên hệ](FE/images/contact.png)
 
 ---
 
 ### 4. Dashboard dành cho Chủ trọ
-![Chủ trọ](images/landlord_dashboard.png)
+![Chủ trọ](FE/images/landlord_dashboard.png)
 
 ---
 
 ### 5. Dashboard dành cho Người thuê
-![Người thuê](images/tenant_dashboard.png)
+![Người thuê](FE/images/tenant_dashboard.png)
 
 ---
 
 ### 6. Giao diện Quản trị viên
-![Admin](images/admin_dashboard.png)
+![Admin](FE/images/admin_dashboard.png)
 
 ---
 
