@@ -116,4 +116,3 @@ Dự án được phát triển trong khuôn khổ: **Đồ án Tốt nghiệp /
 | **Lê Xuân Nhật** | Xuannhat4412@gmail.com |
 | **Lê Quang Khánh** | Quangkhanh18@gmail.com |
 
-**Trường:** Trường Đại học Sư phạm - Đại học Đà Nẵng
