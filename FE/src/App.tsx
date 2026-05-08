@@ -19,6 +19,7 @@ import { MyStorePage } from './pages/MyStorePage';
 import { AboutPage } from './pages/AboutPage';
 import { GuidePage } from './pages/GuidePage';
 import { TrangBangGia } from './pages/PricingPage';
+import { TrangQuyDinh } from './pages/RulesPage';
 
 import { MainLayout } from './components/layout/MainLayout';
 import { AuthLayout } from './components/layout/AuthLayout';
@@ -131,6 +132,7 @@ export default function App() {
           <Route path="/contact" element={<LegacyPageWrapper Component={ContactPage} />} />
           <Route path="/guide" element={<LegacyPageWrapper Component={GuidePage} />} />
           <Route path="/pricing" element={<LegacyPageWrapper Component={TrangBangGia} />} />
+          <Route path="/rules" element={<LegacyPageWrapper Component={TrangQuyDinh} />} />
           
           <Route path="/store" element={<LegacyPageWrapper Component={StorePage} />} />
           <Route path="/store-detail" element={<LegacyPageWrapper Component={StoreDetailPage} />} />

@@ -31,7 +31,7 @@ export const Footer = () => {
           <div>
             <h3 className="font-bold text-slate-900 mb-6 font-display">Hỗ trợ khách hàng</h3>
             <ul className="space-y-4 text-sm text-slate-500">
-              <li><a className="hover:text-primary transition-colors" href="#">Quy định đăng tin</a></li>
+              <li><Link className="hover:text-primary transition-colors" to="/rules">Quy định đăng tin</Link></li>
               <li><a className="hover:text-primary transition-colors" href="#">Chính sách bảo mật</a></li>
               <li><a className="hover:text-primary transition-colors" href="#">Giải quyết khiếu nại</a></li>
               <li><a className="hover:text-primary transition-colors" href="#">Câu hỏi thường gặp</a></li>
