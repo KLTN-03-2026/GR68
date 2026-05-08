@@ -61,9 +61,6 @@ export const TenantSupportTab = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {thongKe.map((stat, i) => (
             <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <stat.icon className="w-16 h-16" />
-              </div>
               <div className="flex items-center justify-between mb-4 relative z-10">
                 <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{stat.label}</span>
                 <div className={`${stat.bg} ${stat.color} p-2 rounded-xl`}>
