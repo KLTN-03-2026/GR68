@@ -20,6 +20,7 @@ import { AboutPage } from './pages/AboutPage';
 import { GuidePage } from './pages/GuidePage';
 import { TrangBangGia } from './pages/PricingPage';
 import { TrangQuyDinh } from './pages/RulesPage';
+import { PrivacyPage } from './pages/PrivacyPage';
 
 import { MainLayout } from './components/layout/MainLayout';
 import { AuthLayout } from './components/layout/AuthLayout';
@@ -133,6 +134,7 @@ export default function App() {
           <Route path="/guide" element={<LegacyPageWrapper Component={GuidePage} />} />
           <Route path="/pricing" element={<LegacyPageWrapper Component={TrangBangGia} />} />
           <Route path="/rules" element={<LegacyPageWrapper Component={TrangQuyDinh} />} />
+          <Route path="/privacy" element={<LegacyPageWrapper Component={PrivacyPage} />} />
           
           <Route path="/store" element={<LegacyPageWrapper Component={StorePage} />} />
           <Route path="/store-detail" element={<LegacyPageWrapper Component={StoreDetailPage} />} />
