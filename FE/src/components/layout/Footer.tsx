@@ -33,7 +33,7 @@ export const Footer = () => {
             <ul className="space-y-4 text-sm text-slate-500">
               <li><Link className="hover:text-primary transition-colors" to="/rules">Quy định đăng tin</Link></li>
               <li><Link className="hover:text-primary transition-colors" to="/privacy">Chính sách bảo mật</Link></li>
-              <li><a className="hover:text-primary transition-colors" href="#">Giải quyết khiếu nại</a></li>
+              <li><Link className="hover:text-primary transition-colors" to="/complaints">Giải quyết khiếu nại</Link></li>
               <li><a className="hover:text-primary transition-colors" href="#">Câu hỏi thường gặp</a></li>
             </ul>
           </div>
