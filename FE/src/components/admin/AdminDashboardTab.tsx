@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { 
-  Users, BarChart as ChartIcon, FileText, CheckCircle, Wallet, ShoppingCart, Shield, Clock 
+import {
+  Users, BarChart as ChartIcon, FileText, CheckCircle, Wallet, ShoppingCart, Shield, Clock
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -103,96 +103,96 @@ export const AdminDashboardTab = ({ tongQuanThongKe, dangTai, datCheDoXem, datCh
   return (
     <>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col w-full h-full">
-                <div className="mb-8 shrink-0">
-                  <h2 className="text-2xl font-bold text-slate-900">Bảng điều khiển Hệ thống</h2>
-                  <p className="text-slate-500">Phân tích dữ liệu tổng thể và hiệu suất kinh doanh.</p>
-                </div>
+        <div className="mb-8 shrink-0">
+          <h2 className="text-2xl font-bold text-slate-900">Bảng điều khiển Hệ thống</h2>
+          <p className="text-slate-500">Phân tích dữ liệu tổng thể và hiệu suất kinh doanh.</p>
+        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-primary transition-colors"
-                       onClick={() => { datCheDoXem('listings'); datCheDoTinDang('room'); }}>
-                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4">
-                      <FileText className="w-6 h-6" />
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 mb-1">Tin Thuê Phòng</p>
-                    <p className="text-3xl font-black text-slate-900">{dangTai ? '...' : tongQuanThongKe.totalListings}</p>
-                    <div className="mt-2 text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded inline-block">Listings</div>
-                  </div>
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-primary transition-colors"
-                       onClick={() => { datCheDoXem('listings'); datCheDoTinDang('product'); }}>
-                    <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-4">
-                      <ShoppingCart className="w-6 h-6" />
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 mb-1">Sản phẩm Bán</p>
-                    <p className="text-3xl font-black text-slate-900">{dangTai ? '...' : tongQuanThongKe.totalProducts}</p>
-                    <div className="mt-2 text-xs text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded inline-block">Store</div>
-                  </div>
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-primary transition-colors"
-                       onClick={() => datCheDoXem('users')}>
-                    <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
-                      <Users className="w-6 h-6" />
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 mb-1">Thành viên</p>
-                    <p className="text-3xl font-black text-slate-900">{dangTai ? '...' : tongQuanThongKe.totalUsers}</p>
-                    <div className="mt-2 text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded inline-block">Users</div>
-                  </div>
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-4">
-                      <Shield className="w-6 h-6" />
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 mb-1">Hợp đồng thuê</p>
-                    <p className="text-3xl font-black text-slate-900">{dangTai ? '...' : tongQuanThongKe.activeContracts}</p>
-                    <div className="mt-2 text-xs text-purple-600 font-bold bg-purple-50 px-2 py-1 rounded inline-block">Running</div>
-                  </div>
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <div className="w-12 h-12 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center mb-4">
-                      <Wallet className="w-6 h-6" />
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 mb-1">Doanh thu (Ước tính)</p>
-                    <p className="text-2xl font-black text-slate-900">{dangTai ? '...' : tongQuanThongKe.totalRevenue.toLocaleString('vi-VN')} đ</p>
-                    <div className="mt-2 text-xs text-slate-600 font-bold bg-slate-50 px-2 py-1 rounded inline-block">Payment Based</div>
-                  </div>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-primary transition-colors"
+            onClick={() => { datCheDoXem('listings'); datCheDoTinDang('room'); }}>
+            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+              <FileText className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-bold text-slate-500 mb-1">Tin Thuê Phòng</p>
+            <p className="text-3xl font-black text-slate-900">{dangTai ? '...' : tongQuanThongKe.totalListings}</p>
+            <div className="mt-2 text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded inline-block">Listings</div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-primary transition-colors"
+            onClick={() => { datCheDoXem('listings'); datCheDoTinDang('product'); }}>
+            <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-4">
+              <ShoppingCart className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-bold text-slate-500 mb-1">Sản phẩm Bán</p>
+            <p className="text-3xl font-black text-slate-900">{dangTai ? '...' : tongQuanThongKe.totalProducts}</p>
+            <div className="mt-2 text-xs text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded inline-block">Store</div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-primary transition-colors"
+            onClick={() => datCheDoXem('users')}>
+            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
+              <Users className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-bold text-slate-500 mb-1">Thành viên</p>
+            <p className="text-3xl font-black text-slate-900">{dangTai ? '...' : tongQuanThongKe.totalUsers}</p>
+            <div className="mt-2 text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded inline-block">Users</div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-4">
+              <Shield className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-bold text-slate-500 mb-1">Hợp đồng thuê</p>
+            <p className="text-3xl font-black text-slate-900">{dangTai ? '...' : tongQuanThongKe.activeContracts}</p>
+            <div className="mt-2 text-xs text-purple-600 font-bold bg-purple-50 px-2 py-1 rounded inline-block">Running</div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="w-12 h-12 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center mb-4">
+              <Wallet className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-bold text-slate-500 mb-1">Doanh thu (Ước tính)</p>
+            <p className="text-2xl font-black text-slate-900">{dangTai ? '...' : tongQuanThongKe.totalRevenue.toLocaleString('vi-VN')} đ</p>
+            <div className="mt-2 text-xs text-slate-600 font-bold bg-slate-50 px-2 py-1 rounded inline-block">Payment Based</div>
+          </div>
+        </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm h-[400px]">
-                    <h3 className="text-xl font-bold text-slate-900 mb-6">Tăng trưởng Tin đăng</h3>
-                    <div className="h-[300px]">
-                      <Line data={duLieuBieuDoDuong} options={tuyChonBieuDo} />
-                    </div>
-                  </div>
-                  <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[400px]">
-                    <h3 className="text-xl font-bold text-slate-900 mb-6 font-display">Cơ cấu Nội dung</h3>
-                    <div className="flex-1 flex items-center justify-center">
-                      <Pie data={duLieuBieuDoTron} options={{ ...tuyChonBieuDo, plugins: { ...tuyChonBieuDo.plugins, legend: { position: 'bottom' } } }} />
-                    </div>
-                  </div>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm h-[400px]">
+            <h3 className="text-xl font-bold text-slate-900 mb-6">Tăng trưởng Tin đăng</h3>
+            <div className="h-[300px]">
+              <Line data={duLieuBieuDoDuong} options={tuyChonBieuDo} />
+            </div>
+          </div>
+          <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[400px]">
+            <h3 className="text-xl font-bold text-slate-900 mb-6 font-display">Cơ cấu Nội dung</h3>
+            <div className="flex-1 flex items-center justify-center">
+              <Pie data={duLieuBieuDoTron} options={{ ...tuyChonBieuDo, plugins: { ...tuyChonBieuDo.plugins, legend: { position: 'bottom' } } }} />
+            </div>
+          </div>
+        </div>
 
-                <div className="mt-8 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm h-[400px]">
-                    <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                        <ChartIcon className="w-6 h-6 text-indigo-500" />
-                        Thống kê lượng truy cập Website
-                    </h3>
-                    <div className="h-[280px]">
-                        <Bar 
-                            data={duLieuTruyCap} 
-                            options={{
-                                ...tuyChonBieuDo,
-                                scales: {
-                                    y: {
-                                        beginAtZero: true,
-                                        grid: { color: 'rgba(0,0,0,0.05)' }
-                                    },
-                                    x: {
-                                        grid: { display: false }
-                                    }
-                                }
-                            }} 
-                        />
-                    </div>
-                </div>
-              </motion.div>
+        <div className="mt-8 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm h-[400px]">
+          <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+            <ChartIcon className="w-6 h-6 text-indigo-500" />
+            Thống kê lượng truy cập Website
+          </h3>
+          <div className="h-[280px]">
+            <Bar
+              data={duLieuTruyCap}
+              options={{
+                ...tuyChonBieuDo,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                  },
+                  x: {
+                    grid: { display: false }
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+      </motion.div>
     </>
   );
 };

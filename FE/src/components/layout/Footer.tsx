@@ -34,7 +34,7 @@ export const Footer = () => {
               <li><Link className="hover:text-primary transition-colors" to="/rules">Quy định đăng tin</Link></li>
               <li><Link className="hover:text-primary transition-colors" to="/privacy">Chính sách bảo mật</Link></li>
               <li><Link className="hover:text-primary transition-colors" to="/complaints">Giải quyết khiếu nại</Link></li>
-              <li><a className="hover:text-primary transition-colors" href="#">Câu hỏi thường gặp</a></li>
+              <li><Link className="hover:text-primary transition-colors" to="/faq">Câu hỏi thường gặp</Link></li>
             </ul>
           </div>
           <div>

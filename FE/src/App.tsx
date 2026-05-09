@@ -22,6 +22,7 @@ import { TrangBangGia } from './pages/PricingPage';
 import { TrangQuyDinh } from './pages/RulesPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TrangKhieuNai } from './pages/ComplaintsPage';
+import { TrangFAQ } from './pages/FAQPage';
 
 
 import { MainLayout } from './components/layout/MainLayout';
@@ -138,6 +139,7 @@ export default function App() {
           <Route path="/rules" element={<LegacyPageWrapper Component={TrangQuyDinh} />} />
           <Route path="/privacy" element={<LegacyPageWrapper Component={PrivacyPage} />} />
           <Route path="/complaints" element={<LegacyPageWrapper Component={TrangKhieuNai} />} />
+          <Route path="/faq" element={<LegacyPageWrapper Component={TrangFAQ} />} />
 
           
           <Route path="/store" element={<LegacyPageWrapper Component={StorePage} />} />
