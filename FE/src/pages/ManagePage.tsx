@@ -850,7 +850,11 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
           )}
 
           {activeTab === 'contracts' && (
-            <ContractsTab contractsData={contractsData} />
+            <ContractsTab 
+              duLieuHopDong={contractsData} 
+              duLieuPhong={roomsData} 
+              lamMoiDuLieu={fetchContracts} 
+            />
           )}
 
           {activeTab === 'support' && (
