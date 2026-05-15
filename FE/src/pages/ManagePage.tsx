@@ -77,7 +77,8 @@ import {
   Droplets,
   ShieldCheck,
   Wrench,
-  Calendar
+  Calendar,
+  Menu
 } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -102,6 +103,7 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
   };
 
   const [activeTab, setActiveTab] = useState(getInitialTab());
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Update URL and LocalStorage when tab changes
   useEffect(() => {
@@ -748,9 +750,33 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <div className="flex flex-1">
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-white border-b border-slate-200 p-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2 text-primary">
+          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+            <LayoutDashboard className="w-5 h-5" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 font-display">Chủ Trọ</h2>
+        </div>
+        <button 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+        >
+          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </div>
+
+      <div className="flex flex-1 relative">
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
         {/* Sidebar */}
-        <aside className="hidden lg:flex w-72 bg-white border-r border-slate-200 flex-col sticky top-16 h-[calc(100vh-64px)] overflow-y-auto">
+        <aside className={`fixed lg:sticky top-0 lg:top-16 left-0 h-full lg:h-[calc(100vh-64px)] w-72 bg-white border-r border-slate-200 flex-col z-50 transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:flex overflow-y-auto`}>
           <div className="p-6 flex-1">
             <div className="flex items-center gap-3 text-primary mb-8">
               <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -763,7 +789,10 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
               {navItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setIsMobileMenuOpen(false);
+                  }}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold text-sm ${
                     activeTab === item.id 
                       ? 'bg-primary/10 text-primary' 

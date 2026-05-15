@@ -89,7 +89,7 @@ export const HomePage = ({
 
       <main>
         {/* Hero Section */}
-        <section className="relative w-full h-[600px] flex items-center justify-center px-4 md:px-8 py-8">
+        <section className="relative w-full min-h-[500px] md:min-h-[600px] py-16 md:py-20 flex items-center justify-center px-4 md:px-8">
           <div className="absolute inset-0 z-0 overflow-hidden rounded-[32px] mx-4 my-4 md:mx-8 md:my-8 shadow-2xl">
             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
             <img 
@@ -285,7 +285,7 @@ export const HomePage = ({
 
               <button
                 onClick={handleSearch}
-                className="bg-primary text-white font-black uppercase tracking-widest text-xs px-10 py-4 rounded-xl hover:bg-primary-hover transition-all flex items-center justify-center gap-2 shadow-xl shadow-orange-100 active:scale-95"
+                className="w-full md:w-auto bg-primary text-white font-black uppercase tracking-widest text-xs px-10 py-4 rounded-xl hover:bg-primary-hover transition-all flex items-center justify-center gap-2 shadow-xl shadow-orange-100 active:scale-95"
               >
                 <Search className="w-4 h-4" />
                 Tìm kiếm
@@ -296,17 +296,17 @@ export const HomePage = ({
 
         {/* Featured Section */}
         <section id="new-listings" className="max-w-7xl mx-auto px-4 py-16">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <div>
               <h2 className="text-2xl font-bold text-slate-900 font-display">Phòng trọ mới đăng</h2>
               <p className="text-slate-500 mt-1">Cập nhật những tin đăng mới nhất hàng ngày</p>
             </div>
-            <a className="text-primary font-semibold flex items-center gap-1 hover:underline cursor-pointer" onClick={(e) => { e.preventDefault(); onNavigate('search'); }}>
+            <a className="text-primary font-semibold flex items-center gap-1 hover:underline cursor-pointer whitespace-nowrap" onClick={(e) => { e.preventDefault(); onNavigate('search'); }}>
               Xem tất cả <ArrowRight className="w-4 h-4" />
             </a>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {loading ? (
               [1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div key={i} className="bg-slate-50 rounded-xl aspect-[4/3] animate-pulse"></div>
@@ -330,20 +330,20 @@ export const HomePage = ({
                       <div className="absolute top-2 left-2 text-white text-[10px] font-black px-2 py-1 rounded bg-primary uppercase tracking-widest">MỚI</div>
                     )}
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-black text-slate-900 line-clamp-1 font-display">{item.title}</h3>
-                    <div className="flex items-center text-primary font-black my-2">
-                      <span className="text-lg">{Number(item.price).toLocaleString()}đ</span>
-                      <span className="text-xs font-bold text-slate-400 ml-1">/tháng</span>
+                  <div className="p-3 sm:p-4">
+                    <h3 className="font-black text-slate-900 text-sm sm:text-base line-clamp-1 font-display">{item.title}</h3>
+                    <div className="flex items-center text-primary font-black my-1 sm:my-2">
+                      <span className="text-base sm:text-lg">{Number(item.price).toLocaleString()}đ</span>
+                      <span className="text-[10px] sm:text-xs font-bold text-slate-400 ml-1">/tháng</span>
                     </div>
-                    <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 sm:mt-0">
                       <span className="flex items-center gap-1">
                         <Square className="w-3 h-3" />
                         {item.area || '0'}m²
                       </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {item.location || 'Đà Nẵng'}
+                      <span className="flex items-center gap-1 truncate">
+                        <MapPin className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{item.location || 'Đà Nẵng'}</span>
                       </span>
                     </div>
                   </div>
@@ -366,7 +366,7 @@ export const HomePage = ({
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {areas.map((area) => (
-                <a key={area.name} className="relative h-64 rounded-xl overflow-hidden group cursor-pointer" href="#">
+                <a key={area.name} className="relative h-48 md:h-64 rounded-xl overflow-hidden group cursor-pointer" href="#">
                   <img 
                     alt={area.name} 
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 

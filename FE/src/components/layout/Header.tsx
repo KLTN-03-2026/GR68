@@ -1,5 +1,5 @@
-import React, { ReactNode } from 'react';
-import { Home, User, LogOut } from 'lucide-react';
+import React, { ReactNode, useState } from 'react';
+import { Home, User, LogOut, Menu, X } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { NotificationBell } from '../shared/NotificationBell';
 
@@ -15,6 +15,7 @@ interface HeaderProps {
 
 export const Header = ({ user, onLogout, onNavigate, activePath, children }: HeaderProps) => {
   const [dbRole, setDbRole] = React.useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   React.useEffect(() => {
     if (user?.id) {
@@ -121,12 +122,35 @@ export const Header = ({ user, onLogout, onNavigate, activePath, children }: Hea
             </div>
           ) : (
             <div className="flex items-center gap-4 ml-2">
-              <button onClick={() => onNavigate('login')} className="text-sm font-bold text-slate-600 hover:text-primary transition-colors">Đăng nhập</button>
-              <button onClick={() => onNavigate('register')} className="bg-primary text-white text-sm font-bold px-6 py-3 rounded-2xl hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20">Đăng ký</button>
+              <button onClick={() => onNavigate('login')} className="text-sm font-bold text-slate-600 hover:text-primary transition-colors hidden sm:block">Đăng nhập</button>
+              <button onClick={() => onNavigate('register')} className="bg-primary text-white text-sm font-bold px-4 py-2 sm:px-6 sm:py-3 rounded-2xl hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20">Đăng ký</button>
             </div>
           )}
+
+          {/* Mobile menu button */}
+          <button 
+            className="md:hidden p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg ml-1"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Nav Menu */}
+      {isMobileMenuOpen && (
+        <nav className="md:hidden border-t border-slate-100 mt-4 pt-4 pb-2 flex flex-col gap-4 px-2 animate-in slide-in-from-top-2">
+          <a className={`text-base block p-2 rounded-lg ${activePath === 'home' ? 'font-bold bg-primary/10 text-primary' : 'font-semibold text-slate-600 hover:bg-slate-50'}`} onClick={(e) => { e.preventDefault(); onNavigate('home'); setIsMobileMenuOpen(false); }}>Trang chủ</a>
+          <a className={`text-base block p-2 rounded-lg ${activePath === 'store' ? 'font-bold bg-primary/10 text-primary' : 'font-semibold text-slate-600 hover:bg-slate-50'}`} onClick={(e) => { e.preventDefault(); onNavigate('store'); setIsMobileMenuOpen(false); }}>Cửa hàng</a>
+          <a className={`text-base block p-2 rounded-lg ${activePath === 'contact' ? 'font-bold bg-primary/10 text-primary' : 'font-semibold text-slate-600 hover:bg-slate-50'}`} onClick={(e) => { e.preventDefault(); onNavigate('contact'); setIsMobileMenuOpen(false); }}>Liên hệ</a>
+          {currentRole === 'landlord' && <a className={`text-base block p-2 rounded-lg ${activePath === 'manage' ? 'font-bold bg-primary/10 text-primary' : 'font-semibold text-slate-600 hover:bg-slate-50'}`} onClick={(e) => { e.preventDefault(); onNavigate('manage'); setIsMobileMenuOpen(false); }}>Quản lý</a>}
+          {currentRole === 'tenant' && <a className={`text-base block p-2 rounded-lg ${activePath === 'tenant' ? 'font-bold bg-primary/10 text-primary' : 'font-semibold text-slate-600 hover:bg-slate-50'}`} onClick={(e) => { e.preventDefault(); onNavigate('tenant'); setIsMobileMenuOpen(false); }}>Phòng của tôi</a>}
+          {currentRole === 'admin' && <a className={`text-base block p-2 rounded-lg ${activePath === 'admin' ? 'font-bold bg-primary/10 text-primary' : 'font-semibold text-slate-600 hover:bg-slate-50'}`} onClick={(e) => { e.preventDefault(); onNavigate('admin'); setIsMobileMenuOpen(false); }}>Quản trị</a>}
+          {!user && (
+             <a className="text-base block p-2 rounded-lg font-semibold text-slate-600 sm:hidden mt-2 border-t pt-4" onClick={(e) => { e.preventDefault(); onNavigate('login'); setIsMobileMenuOpen(false); }}>Đăng nhập</a>
+          )}
+        </nav>
+      )}
     </header>
   );
 };
