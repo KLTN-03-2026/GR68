@@ -822,9 +822,9 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
 
           {activeTab === 'tenants' && (
             <TenantsTab
-              contractsData={contractsData}
-              setActiveTab={setActiveTab}
-              loading={loading}
+              duLieuHopDong={contractsData}
+              setTabHoatDong={setActiveTab}
+              dangTai={loading}
             />
           )}
 
