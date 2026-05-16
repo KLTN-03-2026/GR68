@@ -859,15 +859,17 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
 
           {activeTab === 'invoices' && (
             <InvoicesTab 
-              invoicesData={invoicesData} 
-              roomsData={roomsData}
-              contractsData={contractsData}
-              onOpenCreateInvoice={(roomId: string | null = null) => {
+              duLieuHoaDon={invoicesData} 
+              duLieuPhong={roomsData}
+              duLieuHopDong={contractsData}
+              coPhong={roomsData.length > 0}
+              xuLyMoTaoHoaDon={(roomId: string | null = null) => {
                 setPreSelectedRoomForInvoice(roomId);
                 setShowCreateInvoiceModal(true);
               }}
-              onCreateInvoice={handleAddInvoice}
-              onUpdateStatus={handleUpdateInvoiceStatus}
+              xuLyTaoHoaDon={handleAddInvoice}
+              xuLyCapNhatTrangThai={handleUpdateInvoiceStatus}
+              lamMoiDuLieu={fetchInvoices}
             />
           )}
 
