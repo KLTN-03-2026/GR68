@@ -46,47 +46,47 @@ export const TenantsTab = ({ duLieuHopDong, setTabHoatDong, dangTai = false }: T
 
   // Group active contracts by room_id → allows multiple tenants per room
   const danhSachNhomPhong: NhomPhong[] = useMemo(() => {
-    const map = new Map<string, NhomPhong>();
+    const banDoPhong = new Map<string, NhomPhong>();
 
-    duLieuHopDong.forEach(c => {
-      if (c.status !== 'active' || !c.profiles || !c.rooms) return;
-      const p = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
-      if (!p) return;
+    duLieuHopDong.forEach(hopDong => {
+      if (hopDong.status !== 'active' || !hopDong.profiles || !hopDong.rooms) return;
+      const hoSo = Array.isArray(hopDong.profiles) ? hopDong.profiles[0] : hopDong.profiles;
+      if (!hoSo) return;
 
-      const idPhong = c.room_id;
-      const tenPhong = c.rooms?.title || 'Phòng không rõ';
+      const idPhong = hopDong.room_id;
+      const tenPhong = hopDong.rooms?.title || 'Phòng không rõ';
 
       const nguoiThue: ChiTietNguoiThue = {
-        idHopDong: c.id,
-        idNguoiThue: c.tenant_id,
-        tenNguoiThue: p.full_name || 'Người thuê',
-        soDienThoai: p.phone || null,
-        soZalo: p.zalo_phone || null,
-        anhDaiDien: p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name || 'U')}&background=FF8A00&color=fff`,
-        gioiTinh: p.gender || null,
-        ngaySinh: p.birth_date || null,
-        diaChiThuongTru: p.permanent_address || null,
-        soCccd: p.id_card_number || null,
-        ngayCapCccd: p.id_card_date || null,
-        noiCapCccd: p.id_card_place || null,
-        tenNganHang: p.bank_name || null,
-        soTaiKhoan: p.bank_account_number || null,
-        chuTaiKhoan: p.bank_account_name || null,
-        tenLienHeKhanCap: p.emergency_contact_name || null,
-        sdtLienHeKhanCap: p.emergency_contact_phone || null,
-        ngayBatDauHopDong: c.start_date,
-        ngayKetThucHopDong: c.end_date,
-        tienCoc: c.deposit || 0,
-        daHoanThienHoSo: !!(p.id_card_number && p.permanent_address && p.birth_date && p.emergency_contact_name),
+        idHopDong: hopDong.id,
+        idNguoiThue: hopDong.tenant_id,
+        tenNguoiThue: hoSo.full_name || 'Người thuê',
+        soDienThoai: hoSo.phone || null,
+        soZalo: hoSo.zalo_phone || null,
+        anhDaiDien: hoSo.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(hoSo.full_name || 'U')}&background=FF8A00&color=fff`,
+        gioiTinh: hoSo.gender || null,
+        ngaySinh: hoSo.birth_date || null,
+        diaChiThuongTru: hoSo.permanent_address || null,
+        soCccd: hoSo.id_card_number || null,
+        ngayCapCccd: hoSo.id_card_date || null,
+        noiCapCccd: hoSo.id_card_place || null,
+        tenNganHang: hoSo.bank_name || null,
+        soTaiKhoan: hoSo.bank_account_number || null,
+        chuTaiKhoan: hoSo.bank_account_name || null,
+        tenLienHeKhanCap: hoSo.emergency_contact_name || null,
+        sdtLienHeKhanCap: hoSo.emergency_contact_phone || null,
+        ngayBatDauHopDong: hopDong.start_date,
+        ngayKetThucHopDong: hopDong.end_date,
+        tienCoc: hopDong.deposit || 0,
+        daHoanThienHoSo: !!(hoSo.id_card_number && hoSo.permanent_address && hoSo.birth_date && hoSo.emergency_contact_name),
       };
 
-      if (!map.has(idPhong)) {
-        map.set(idPhong, { idPhong, tenPhong, danhSachNguoiThue: [] });
+      if (!banDoPhong.has(idPhong)) {
+        banDoPhong.set(idPhong, { idPhong, tenPhong, danhSachNguoiThue: [] });
       }
-      map.get(idPhong)!.danhSachNguoiThue.push(nguoiThue);
+      banDoPhong.get(idPhong)!.danhSachNguoiThue.push(nguoiThue);
     });
 
-    return Array.from(map.values()).sort((a, b) => a.tenPhong.localeCompare(b.tenPhong));
+    return Array.from(banDoPhong.values()).sort((a, b) => a.tenPhong.localeCompare(b.tenPhong));
   }, [duLieuHopDong]);
 
   // Auto-select first room on load
@@ -96,16 +96,16 @@ export const TenantsTab = ({ duLieuHopDong, setTabHoatDong, dangTai = false }: T
     }
   }, [danhSachNhomPhong, idPhongDuocChon]);
 
-  const nhomPhongDuocChon = danhSachNhomPhong.find(g => g.idPhong === idPhongDuocChon) || null;
+  const nhomPhongDuocChon = danhSachNhomPhong.find(nhom => nhom.idPhong === idPhongDuocChon) || null;
 
-  const dinhDangChu = (val: string | null) =>
-    val ? val : <span className="text-slate-300 italic text-xs">—</span>;
+  const dinhDangChu = (giaTri: string | null) =>
+    giaTri ? giaTri : <span className="text-slate-300 italic text-xs">—</span>;
 
-  const dinhDangNgay = (val: string | null) =>
-    val ? new Date(val).toLocaleDateString('vi-VN') : <span className="text-slate-300 italic text-xs">—</span>;
+  const dinhDangNgay = (giaTri: string | null) =>
+    giaTri ? new Date(giaTri).toLocaleDateString('vi-VN') : <span className="text-slate-300 italic text-xs">—</span>;
 
-  const dinhDangTien = (val: number) =>
-    val > 0 ? `${Number(val).toLocaleString()}đ` : <span className="text-slate-300 italic text-xs">—</span>;
+  const dinhDangTien = (giaTri: number) =>
+    giaTri > 0 ? `${Number(giaTri).toLocaleString()}đ` : <span className="text-slate-300 italic text-xs">—</span>;
 
   // ───── Loading skeleton ─────
   if (dangTai) {
@@ -146,7 +146,7 @@ export const TenantsTab = ({ duLieuHopDong, setTabHoatDong, dangTai = false }: T
         </h2>
         <p className="text-slate-500 font-medium">
           {danhSachNhomPhong.length} phòng đang có người thuê •{' '}
-          {danhSachNhomPhong.reduce((s, g) => s + g.danhSachNguoiThue.length, 0)} người thuê tổng cộng
+          {danhSachNhomPhong.reduce((s, nhom) => s + nhom.danhSachNguoiThue.length, 0)} người thuê tổng cộng
         </p>
       </div>
 
@@ -156,13 +156,13 @@ export const TenantsTab = ({ duLieuHopDong, setTabHoatDong, dangTai = false }: T
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
             <Building2 className="w-3.5 h-3.5" /> Danh sách phòng
           </p>
-          {danhSachNhomPhong.map(group => {
-            const dangDuocChon = group.idPhong === idPhongDuocChon;
-            const coHoSoChuaHoanThien = group.danhSachNguoiThue.some(t => !t.daHoanThienHoSo);
+          {danhSachNhomPhong.map(nhom => {
+            const dangDuocChon = nhom.idPhong === idPhongDuocChon;
+            const coHoSoChuaHoanThien = nhom.danhSachNguoiThue.some(nguoiThue => !nguoiThue.daHoanThienHoSo);
             return (
               <motion.button
-                key={group.idPhong}
-                onClick={() => setIdPhongDuocChon(group.idPhong)}
+                key={nhom.idPhong}
+                onClick={() => setIdPhongDuocChon(nhom.idPhong)}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center gap-3 ${
@@ -173,10 +173,10 @@ export const TenantsTab = ({ duLieuHopDong, setTabHoatDong, dangTai = false }: T
               >
                 <div className="flex-1 min-w-0">
                   <p className={`font-black text-sm truncate ${dangDuocChon ? 'text-primary' : 'text-slate-900'}`}>
-                    {group.tenPhong}
+                    {nhom.tenPhong}
                   </p>
                   <p className="text-xs text-slate-400 font-medium">
-                    {group.danhSachNguoiThue.length} người thuê
+                    {nhom.danhSachNguoiThue.length} người thuê
                     {coHoSoChuaHoanThien && (
                       <span className="ml-1.5 text-amber-500">⚠</span>
                     )}
@@ -218,28 +218,28 @@ export const TenantsTab = ({ duLieuHopDong, setTabHoatDong, dangTai = false }: T
                           'Người thuê', 'Liên hệ', 'Ngày sinh', 'CCCD',
                           'Địa chỉ thường trú', 'Hợp đồng', 'Tiền cọc',
                           'Ngân hàng', 'Liên hệ khẩn cấp', 'Hồ sơ', ''
-                        ].map(h => (
-                          <th key={h} className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">
-                            {h}
+                        ].map(tieuDeCot => (
+                          <th key={tieuDeCot} className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">
+                            {tieuDeCot}
                           </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {nhomPhongDuocChon.danhSachNguoiThue.map((tenant, idx) => (
+                      {nhomPhongDuocChon.danhSachNguoiThue.map((nguoiThue, thuTu) => (
                         <motion.tr
-                          key={tenant.idHopDong}
+                          key={nguoiThue.idHopDong}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          transition={{ delay: idx * 0.05 }}
+                          transition={{ delay: thuTu * 0.05 }}
                           className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors group"
                         >
                           {/* Người thuê */}
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div>
-                              <p className="font-bold text-slate-900 text-sm">{tenant.tenNguoiThue}</p>
-                              {tenant.gioiTinh && (
-                                <p className="text-[10px] text-slate-400 font-medium">{tenant.gioiTinh}</p>
+                              <p className="font-bold text-slate-900 text-sm">{nguoiThue.tenNguoiThue}</p>
+                              {nguoiThue.gioiTinh && (
+                                <p className="text-[10px] text-slate-400 font-medium">{nguoiThue.gioiTinh}</p>
                               )}
                             </div>
                           </td>
@@ -249,30 +249,30 @@ export const TenantsTab = ({ duLieuHopDong, setTabHoatDong, dangTai = false }: T
                             <div className="space-y-0.5">
                               <p className="font-semibold text-slate-700 flex items-center gap-1">
                                 <Phone className="w-3 h-3 text-slate-400" />
-                                {tenant.soDienThoai
-                                  ? <a href={`tel:${tenant.soDienThoai}`} className="hover:text-primary transition-colors">{tenant.soDienThoai}</a>
+                                {nguoiThue.soDienThoai
+                                  ? <a href={`tel:${nguoiThue.soDienThoai}`} className="hover:text-primary transition-colors">{nguoiThue.soDienThoai}</a>
                                   : <span className="text-slate-300 italic text-xs">—</span>
                                 }
                               </p>
-                              {tenant.soZalo && (
-                                <p className="text-xs text-slate-400 font-medium">Zalo: {tenant.soZalo}</p>
+                              {nguoiThue.soZalo && (
+                                <p className="text-xs text-slate-400 font-medium">Zalo: {nguoiThue.soZalo}</p>
                               )}
                             </div>
                           </td>
 
                           {/* Ngày sinh */}
                           <td className="px-4 py-3 whitespace-nowrap text-slate-600 font-medium">
-                            {dinhDangNgay(tenant.ngaySinh)}
+                            {dinhDangNgay(nguoiThue.ngaySinh)}
                           </td>
 
                           {/* CCCD */}
                           <td className="px-4 py-3 whitespace-nowrap">
-                            {tenant.soCccd ? (
+                            {nguoiThue.soCccd ? (
                               <div>
-                                <p className="font-bold text-slate-800 font-mono text-xs">{tenant.soCccd}</p>
+                                <p className="font-bold text-slate-800 font-mono text-xs">{nguoiThue.soCccd}</p>
                                 <p className="text-[10px] text-slate-400">
-                                  {tenant.ngayCapCccd ? new Date(tenant.ngayCapCccd).toLocaleDateString('vi-VN') : ''}
-                                  {tenant.noiCapCccd ? ` • ${tenant.noiCapCccd}` : ''}
+                                  {nguoiThue.ngayCapCccd ? new Date(nguoiThue.ngayCapCccd).toLocaleDateString('vi-VN') : ''}
+                                  {nguoiThue.noiCapCccd ? ` • ${nguoiThue.noiCapCccd}` : ''}
                                 </p>
                               </div>
                             ) : (
@@ -283,19 +283,19 @@ export const TenantsTab = ({ duLieuHopDong, setTabHoatDong, dangTai = false }: T
                           {/* Địa chỉ */}
                           <td className="px-4 py-3 max-w-[160px]">
                             <p className="text-slate-600 font-medium text-xs line-clamp-2">
-                              {dinhDangChu(tenant.diaChiThuongTru)}
+                              {dinhDangChu(nguoiThue.diaChiThuongTru)}
                             </p>
                           </td>
 
                           {/* Hợp đồng */}
                           <td className="px-4 py-3 whitespace-nowrap">
-                            {tenant.ngayBatDauHopDong && tenant.ngayKetThucHopDong ? (
+                            {nguoiThue.ngayBatDauHopDong && nguoiThue.ngayKetThucHopDong ? (
                               <div>
                                 <p className="text-xs font-semibold text-slate-700">
-                                  {new Date(tenant.ngayBatDauHopDong).toLocaleDateString('vi-VN')}
+                                  {new Date(nguoiThue.ngayBatDauHopDong).toLocaleDateString('vi-VN')}
                                 </p>
                                 <p className="text-[10px] text-slate-400">
-                                  → {new Date(tenant.ngayKetThucHopDong).toLocaleDateString('vi-VN')}
+                                  → {new Date(nguoiThue.ngayKetThucHopDong).toLocaleDateString('vi-VN')}
                                 </p>
                               </div>
                             ) : dinhDangChu(null)}
@@ -304,32 +304,32 @@ export const TenantsTab = ({ duLieuHopDong, setTabHoatDong, dangTai = false }: T
                           {/* Tiền cọc */}
                           <td className="px-4 py-3 whitespace-nowrap">
                             <span className="font-black text-primary text-sm">
-                              {dinhDangTien(tenant.tienCoc)}
+                              {dinhDangTien(nguoiThue.tienCoc)}
                             </span>
                           </td>
 
                           {/* Ngân hàng */}
                           <td className="px-4 py-3 whitespace-nowrap">
-                            {tenant.tenNganHang ? (
+                            {nguoiThue.tenNganHang ? (
                               <div>
-                                <p className="text-xs font-bold text-slate-700">{tenant.tenNganHang}</p>
-                                <p className="text-[10px] font-mono text-slate-400">{tenant.soTaiKhoan}</p>
-                                <p className="text-[10px] text-slate-400">{tenant.chuTaiKhoan}</p>
+                                <p className="text-xs font-bold text-slate-700">{nguoiThue.tenNganHang}</p>
+                                <p className="text-[10px] font-mono text-slate-400">{nguoiThue.soTaiKhoan}</p>
+                                <p className="text-[10px] text-slate-400">{nguoiThue.chuTaiKhoan}</p>
                               </div>
                             ) : dinhDangChu(null)}
                           </td>
 
                           {/* Liên hệ khẩn cấp */}
                           <td className="px-4 py-3 whitespace-nowrap">
-                            {tenant.tenLienHeKhanCap ? (
+                            {nguoiThue.tenLienHeKhanCap ? (
                               <div>
-                                <p className="text-xs font-bold text-slate-700">{tenant.tenLienHeKhanCap}</p>
-                                {tenant.sdtLienHeKhanCap && (
+                                <p className="text-xs font-bold text-slate-700">{nguoiThue.tenLienHeKhanCap}</p>
+                                {nguoiThue.sdtLienHeKhanCap && (
                                   <a
-                                    href={`tel:${tenant.sdtLienHeKhanCap}`}
+                                    href={`tel:${nguoiThue.sdtLienHeKhanCap}`}
                                     className="text-[10px] text-primary hover:underline font-medium"
                                   >
-                                    {tenant.sdtLienHeKhanCap}
+                                    {nguoiThue.sdtLienHeKhanCap}
                                   </a>
                                 )}
                               </div>
@@ -338,7 +338,7 @@ export const TenantsTab = ({ duLieuHopDong, setTabHoatDong, dangTai = false }: T
 
                           {/* Hồ sơ */}
                           <td className="px-4 py-3 whitespace-nowrap">
-                            {tenant.daHoanThienHoSo ? (
+                            {nguoiThue.daHoanThienHoSo ? (
                               <span className="flex items-center gap-1 text-[10px] font-black text-green-700 bg-green-50 px-2 py-1 rounded-full">
                                 <BadgeCheck className="w-3 h-3" /> Đầy đủ
                               </span>
@@ -351,9 +351,9 @@ export const TenantsTab = ({ duLieuHopDong, setTabHoatDong, dangTai = false }: T
 
                           {/* Action */}
                           <td className="px-4 py-3 whitespace-nowrap">
-                            {tenant.soDienThoai && (
+                            {nguoiThue.soDienThoai && (
                               <a
-                                href={`tel:${tenant.soDienThoai}`}
+                                href={`tel:${nguoiThue.soDienThoai}`}
                                 className="p-2 rounded-xl bg-slate-100 hover:bg-primary hover:text-white text-slate-500 transition-all inline-flex items-center"
                                 title="Gọi điện"
                               >

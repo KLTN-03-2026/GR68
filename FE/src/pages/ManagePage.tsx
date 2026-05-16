@@ -13,12 +13,14 @@ import { AddListingModal } from '../components/manage/modals/AddListingModal';
 import { RoomDetailModal } from '../components/manage/modals/RoomDetailModal';
 import { DeleteConfirmModal } from '../components/manage/modals/DeleteConfirmModal';
 import { CreateInvoiceModal } from '../components/manage/modals/CreateInvoiceModal';
+import { RiskAlerts } from '../components/RiskAnalysis/RiskAlerts';
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 import Messaging from '../components/shared/Messaging';
 import { supabase } from '../lib/supabase';
+import { duDoanRuiRoDienNuoc } from '../lib/riskAnalysis';
 import { 
   LayoutDashboard, 
   Home as HomeIcon, 
@@ -336,9 +338,41 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
           action_url: '/tenant?tab=invoices'
         });
       }
+
+      // Cập nhật chỉ số điện nước mới nhất cho Phòng để tháng sau tự động lấy làm số CŨ
+      if (invoiceData.room_id) {
+        await supabase.from('rooms').update({
+          initial_electricity_number: invoiceData.electricity_new,
+          initial_water_number: invoiceData.water_new
+        }).eq('id', invoiceData.room_id);
+      }
       
       setShowCreateInvoiceModal(false);
       await fetchInvoices(); // Only need to refresh invoices
+      await fetchRooms(); // Refresh rooms to get new initial numbers
+      
+      // Chạy nền thuật toán dự đoán AI mỗi khi chốt Hóa đơn xong
+      if (invoiceData.room_id) {
+        // Gom lịch sử CŨ của phòng này
+        const lichSuChoPhong = invoicesData
+          .filter(inv => inv.room_id === invoiceData.room_id)
+          .sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+          .map(inv => ({
+            thang: inv.created_at,
+            soDien: inv.electricity_usage || 0,
+            soNuoc: inv.water_usage || 0
+          }));
+        
+        // Kẹp thêm tháng TẠI (vừa chốt xong)
+        lichSuChoPhong.push({
+          thang: new Date().toISOString(),
+          soDien: invoiceData.electricity_usage || 0,
+          soNuoc: invoiceData.water_usage || 0
+        });
+
+        // Push qua bộ vi xử lí AI (Chạy không đồng bộ để không chặn luồng update UI)
+        duDoanRuiRoDienNuoc(invoiceData.room_id, lichSuChoPhong).catch(console.error);
+      }
     } catch (err) {
       console.error('Error creating invoice:', err);
       alert('Không thể tạo hóa đơn');
@@ -740,6 +774,7 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
     { id: 'tenants', label: 'Người thuê', icon: Users },
     { id: 'contracts', label: 'Hợp đồng', icon: FileText },
     { id: 'invoices', label: 'Hóa đơn', icon: Wallet },
+    { id: 'risk_alerts', label: 'Cảnh báo', icon: ShieldAlert },
     { id: 'support', label: 'Yêu cầu hỗ trợ', icon: Wrench },
     { id: 'listings', label: 'Bài đăng', icon: ImageIcon },
     { id: 'messages', label: 'Tin nhắn', icon: MessageSquare },
@@ -873,6 +908,10 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
             />
           )}
 
+          {activeTab === 'risk_alerts' && (
+            <RiskAlerts onNavigate={onNavigate} hasRooms={roomsData.length > 0} role="landlord" />
+          )}
+
           {activeTab === 'listings' && (
             <ListingsTab
               listingsData={listingsData}
@@ -911,7 +950,7 @@ export const ManagePage = ({ onNavigate, user, onLogout, initialParams }: Manage
             />
           )}
 
-          {activeTab !== 'overview' && activeTab !== 'rooms' && activeTab !== 'contracts' && activeTab !== 'messages' && activeTab !== 'account' && activeTab !== 'tenants' && activeTab !== 'invoices' && activeTab !== 'listings' && activeTab !== 'support' && (
+          {activeTab !== 'overview' && activeTab !== 'rooms' && activeTab !== 'contracts' && activeTab !== 'messages' && activeTab !== 'account' && activeTab !== 'tenants' && activeTab !== 'invoices' && activeTab !== 'listings' && activeTab !== 'support' && activeTab !== 'risk_alerts' && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-6">
                 <Construction className="w-10 h-10" />
