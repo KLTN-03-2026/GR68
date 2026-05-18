@@ -12,7 +12,8 @@ import {
   User,
   LogOut,
   ChevronDown,
-  Loader2
+  Loader2,
+  CheckCircle
 } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useToast } from '../context/ToastContext';
