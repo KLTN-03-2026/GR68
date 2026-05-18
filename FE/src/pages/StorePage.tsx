@@ -11,7 +11,7 @@ import { StoreSearchBar } from '../components/store/StoreSearchBar';
 import { ProductSkeleton } from '../components/store/ProductSkeleton';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { Eye, ChevronDown } from 'lucide-react';
+import { Eye, ChevronDown, MapPin, Home, Square } from 'lucide-react';
 import { ProductModal } from '../components/store/ProductModal';
 import { Select } from '../components/store/Select';
 
@@ -168,42 +168,143 @@ export const StorePage = ({ onNavigate, user, onLogout }: StorePageProps) => {
         )}
       </button>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow">
-        <div className="flex flex-col gap-6">
-          {/* Hero Banner */}
-          <section className="relative h-[250px] md:h-[300px] rounded-[32px] overflow-hidden shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent z-10"></div>
-            <img 
-              alt="Store Hero" 
-              className="absolute inset-0 w-full h-full object-cover" 
-              src="https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&q=80&w=1920"
-              referrerPolicy="no-referrer"
-            />
-            <div className="relative z-20 h-full flex flex-col justify-center px-8 md:px-12 text-white">
-              <h1 className="text-3xl md:text-5xl font-black mb-4 leading-tight font-display">
-                Chợ đồ cũ sinh viên<br/>Siêu tiết kiệm
-              </h1>
-              <p className="text-white/80 max-w-md mb-8 text-sm md:text-base font-medium">
-                Tìm đồ gia dụng, nội thất giá siêu rẻ từ những người thuê trọ khác. Trải nghiệm trực tuyến, thanh toán an toàn.
-              </p>
-              <div className="flex flex-wrap gap-4">
+      <main className="flex-grow bg-slate-50">
+        {/* Full-width Hero Banner exactly like HomePage */}
+        <section className="relative w-full min-h-[580px] lg:h-[580px] py-16 lg:py-0 flex items-center bg-[#0B0F19] overflow-hidden bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] bg-center">
+          {/* Ambient Glows */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.06),transparent_50%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.04),transparent_40%)] pointer-events-none" />
+          
+          <div className="relative z-10 max-w-7xl mx-auto w-full px-4 md:px-8 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+            {/* Left Column: Title, Description, Buttons */}
+            <div className="lg:col-span-7 flex flex-col items-start text-left">
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-4xl md:text-5xl font-black text-white mb-6 leading-[1.15] font-display text-left tracking-tight"
+              >
+                Chợ đồ cũ sinh viên<br/>
+                <span className="bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">Siêu tiết kiệm</span>
+              </motion.h1>
+
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-sm md:text-base text-slate-400 max-w-lg mb-8 leading-relaxed text-left font-medium"
+              >
+                Tìm đồ gia dụng, nội thất giá siêu rẻ từ những người thuê trọ khác. Trải nghiệm trực tuyến, thanh toán an toàn, tiết kiệm tối đa chi phí sinh hoạt.
+              </motion.p>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="flex flex-wrap gap-4"
+              >
                 <button 
                   onClick={() => setShowCreateModal(true)}
-                  className="bg-primary hover:bg-primary-hover text-white px-6 md:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-xl flex items-center gap-2"
+                  className="bg-primary hover:bg-primary-hover text-white px-6 md:px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-orange-500/10 active:scale-95 duration-200 flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" /> Đăng bán đồ
                 </button>
                 {user && (
                   <button 
                     onClick={() => onNavigate('my-store')}
-                    className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm px-6 md:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-xl flex items-center gap-2 border border-white/20"
+                    className="bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800/80 px-6 md:px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 duration-200 flex items-center gap-2"
                   >
                     <ShoppingBag className="w-4 h-4" /> Quản lý mua bán
                   </button>
                 )}
-              </div>
+              </motion.div>
             </div>
-          </section>
+
+            {/* Right Column: Floating Mockup Cards */}
+            <div className="lg:col-span-5 hidden lg:flex items-center justify-center relative select-none">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, duration: 0.8 }}
+                className="relative max-w-sm w-full group cursor-default"
+              >
+                {/* Glow behind card */}
+                <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-3xl opacity-30 group-hover:opacity-40 transition-opacity duration-500" />
+                
+                {/* Main Room Card */}
+                <div className="relative bg-white rounded-3xl p-4 shadow-2xl border border-slate-100/10 overflow-hidden transform group-hover:-translate-y-1 transition-all duration-300">
+                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4">
+                    <img
+                      alt="Mockup product"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      src="https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&q=80&w=600"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <div className="text-left px-1">
+                    <div className="flex items-center text-primary font-black mb-1.5">
+                      <span className="text-lg">850.000đ</span>
+                      <span className="text-xs font-bold text-slate-400 ml-1">(Thanh lý)</span>
+                    </div>
+                    <h3 className="font-black text-slate-900 text-sm line-clamp-2 leading-snug font-display mb-3">
+                      🛋️ GHẾ BÀNH VINTAGE MỚI 98% - BÁN LẠI GIÁ RẺ
+                    </h3>
+                    <div className="flex items-center gap-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-primary" />
+                        Quận Hải Châu
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Square className="w-3.5 h-3.5 text-orange-500" />
+                        Nội thất gỗ sồi
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Floating Badge 1: Top Right - Mới đăng */}
+                <div className="absolute -top-6 -right-6 bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-xl border border-slate-100 flex items-center gap-2 group-hover:scale-105 transition-transform duration-300">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="text-left leading-none">
+                    <p className="text-[9px] font-black text-slate-900">Vừa đăng</p>
+                    <p className="text-[7.5px] font-bold text-slate-400 mt-0.5">3 giờ trước</p>
+                  </div>
+                </div>
+
+                {/* Floating Badge 2: Mid Right - Đã kiểm duyệt */}
+                <div className="absolute top-[60%] -right-12 bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-xl border border-slate-100 flex items-center gap-2.5 group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-xs shrink-0 select-none">
+                    ✓
+                  </div>
+                  <div className="text-left leading-none">
+                    <p className="text-[9px] font-black text-slate-900">Đã duyệt</p>
+                    <p className="text-[7.5px] font-bold text-slate-400 mt-0.5">Thông tin chính xác</p>
+                  </div>
+                </div>
+
+                {/* Floating Badge 3: Bottom Left - Giá sinh viên */}
+                <div className="absolute -bottom-6 -left-6 bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-xl border border-slate-100 flex items-center gap-2.5 group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 select-none">
+                    <Home className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="text-left leading-none">
+                    <p className="text-[9px] font-black text-slate-900">Giá sinh viên</p>
+                    <p className="text-[7.5px] font-bold text-slate-400 mt-0.5">Hỗ trợ vận chuyển</p>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+
+          {/* Curved wave bottom separator */}
+          <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-[0] z-10 translate-y-[1px]">
+            <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="relative block w-full h-[40px] md:h-[60px] fill-slate-50">
+              <path d="M985.66,92.83C906.67,72,823.78,31,743.84,14.19c-82.26-17.34-168.06-16.33-250.45.39-57.84,11.73-114,31.07-172,41.86A600.21,600.21,0,0,1,0,27.35V120H1200V95.8C1132.19,118.92,1055.71,111.31,985.66,92.83Z" className="fill-slate-100/5"></path>
+              <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V0C26.9,8.75,53.05,22,79.66,34.79,157.65,72.23,243.39,60.54,321.39,56.44Z" className="fill-slate-50"></path>
+            </svg>
+          </div>
+        </section>
+
+        {/* Contained page content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full flex flex-col gap-8">
 
           {/* New Search & Sort ToolBar */}
           <div className="flex flex-col lg:flex-row items-center gap-4">
@@ -243,7 +344,7 @@ export const StorePage = ({ onNavigate, user, onLogout }: StorePageProps) => {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-8">
             {loading && page === 0 ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <ProductSkeleton key={i} />
